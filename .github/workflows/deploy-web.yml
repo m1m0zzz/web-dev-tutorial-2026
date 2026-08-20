@@ -1,0 +1,55 @@
+name: Deploy Web
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/web/**'
+      # 共通ファイルが変わったときもデプロイし直す
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/deploy-web.yml'
+
+# GITHUB_TOKEN の権限を最小にする（リポジトリの既定値に依存させない）
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # 1.4 で入れた safe-chain を CI でも効かせる（--ci でシムを PATH に置く）
+      - name: Install safe-chain
+        run: |
+          curl -fsSL https://github.com/AikidoSec/safe-chain/releases/download/1.5.15/install-safe-chain.sh -o /tmp/install-safe-chain.sh
+          echo "de0565e3d6346407a604e84e639e95fea8758748063da2216bbfdca5feda5dd2  /tmp/install-safe-chain.sh" | sha256sum -c -
+          sh /tmp/install-safe-chain.sh --ci
+          rm /tmp/install-safe-chain.sh
+
+      - run: npm ci
+
+      # デプロイの前に CI と同じ検査を通す。
+      # ワークフローどうしには順序関係がないため、ci.yml の結果は待てない
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck -w apps/web
+      - run: npm run typecheck -w apps/api
+      - run: npm test -w apps/web
+      - run: npm test -w apps/api
+
+      - run: npm run build -w apps/web
+
+      - name: Deploy Worker
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/web
+          command: deploy
