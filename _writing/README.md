@@ -5,7 +5,6 @@
 | ファイル | 中身 |
 |---|---|
 | [`CLAUDE.md`](CLAUDE.md) | 執筆時の指示（節の書式、参照リンク、調査の原則など） |
-| [`NOTES.md`](NOTES.md) | 執筆メモ（確定した方針・データモデル・エンドポイント一覧・確認済み/未確認の事項） |
 | [`sync-chapters.sh`](sync-chapters.sh) | 章ブランチを `main` の履歴に合わせて付け直す |
 
 ## 履歴とブランチのモデル
@@ -163,3 +162,38 @@ git push origin main
 - 「N章」を含むコミットが `main` に 0 件、または 2 件以上ある
 
 `--push` は `main` と章ブランチ 7 本をまとめて force push します（`--force-with-lease`）。**章ブランチは共同作業用ではなく公開スナップショットなので、force push して構いません。** 読者は clone し直すか、`git fetch --all` で追随できます。
+
+## 確認済みの事項
+
+以下は実機で動かして確認済みです（2026年8月時点）。バージョンが上がったら再確認してください。
+
+| 章 | 確認したこと |
+|---|---|
+| 全体 | 完成コードはこのリポジトリ。章ごとのブランチ（`chapter-02` 〜）を順次追加 |
+| 2 | Node.js の LTS は 24。`create-vite` 9系の生成物（Vite 8 / React 19 / TS 6、Lint は oxlint） |
+| [2.10](../docs/02_frontend.md#210-react-router-でページを分ける) | React Router v8。モードの呼称（Framework / Data / Declarative）は変わっていない |
+| [2.11](../docs/02_frontend.md#211-任意-eslint--prettier-のセットアップ) | ESLint 10 + typescript-eslint + Prettier 3。`eslint-config-prettier` は不要 |
+| [3.2](../docs/03_backend.md#32-npm-create-honolatest) | `create-hono` 0.19 系の生成物。`"private": true` は入っていない |
+| [3.5](../docs/03_backend.md#35-環境変数とシークレット) | `wrangler types` が `vars` をリテラル型、`.dev.vars` のキーを `string` として生成する |
+| [3.6](../docs/03_backend.md#36-drizzle--d1-で-posts-テーブルを作る) | Drizzle 0.45 / drizzle-kit 0.31。ローカル D1 は `.wrangler/state/v3/d1/miniflare-D1DatabaseObject/<hash>.sqlite` |
+| [3.7](../docs/03_backend.md#37-入力バリデーション) | `@hono/zod-validator` 0.9 + zod 4 |
+| [3.10](../docs/03_backend.md#310-better-auth-を導入しposts-をユーザーに紐づける) | Better Auth 1.7。D1 の組み込みサポートはあるが、この記事は Drizzle アダプタを使う。`drizzleAdapter` には `schema` を渡す必要がある。トークンは `set-auth-token` ヘッダー |
+| 4 | Vitest 4 + Testing Library 16 / `@cloudflare/vitest-pool-workers` 0.22（`cloudflareTest` プラグイン形式） |
+| [6.3](../docs/06_api-integration.md#63-hono-rpc-で型安全に呼ぶ) | RPC の型共有は `tsconfig` の `paths` だけで足りる（project references 不要） |
+| [6.1](../docs/06_api-integration.md#61-cors) | CORS に加えて Better Auth の `trustedOrigins` が必要 |
+| 8 | Playwright 1.62。`webServer` は `globalSetup` より先に起動する |
+
+## 未確認の事項
+
+**Cloudflare のアカウントが必要なため、まだ実機で確認できていません。**
+
+- [3.1](../docs/03_backend.md#31-cloudflare-アカウント作成--wrangler-login): `wrangler login` の実際の画面遷移
+- [3.6](../docs/03_backend.md#36-drizzle--d1-で-posts-テーブルを作る): `wrangler d1 create` の出力
+- [5.1](../docs/05_deploy.md#51-環境変数シークレットの置き場所を決める): API トークンの発行画面と、必要な権限の最小セット
+- [5.2](../docs/05_deploy.md#52-github-actions-を構築する): GitHub Actions が実際に通ること（ワークフローは書いたが、push していない）
+- [6.6](../docs/06_api-integration.md#66-環境変数を追加して再デプロイ): 本番環境での通しの動作確認
+- [7.5](../docs/07_features.md#75-csr-の限界): デプロイしたフロントに `curl` を投げ、初期 HTML に本文が含まれないことの実測
+
+その他:
+
+- [2.9](../docs/02_frontend.md#29-css-基礎): 図の作成（必要な図の一覧は本文に記載済み）
