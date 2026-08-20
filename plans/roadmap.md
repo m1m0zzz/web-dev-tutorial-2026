@@ -26,7 +26,15 @@ Windows + WSL2 (Ubuntu) を前提としています。macOS / Linux を使って
 
 https://github.com/m1m0zzz/web-dev-tutorial-2026
 
-**章ごとのブランチ（各章を終えた時点のコード）は、全章を書き終えたあとに切り出します。** それまでは `main` が最新の状態です。途中から始めたい場合や、詰まったときに正解を確認したい場合の参照先として、対応表をここに追加する予定です。
+**各章には、その章を終えた時点のコードのブランチが対応しています。** 途中から始めたい場合や、詰まったときに正解を確認したい場合は、対応するブランチを参照してください。`main` は最新の状態です。
+
+| 章 | ブランチ |
+|---|---|
+| 2 React でフロントエンドを作る | `chapter-02` |
+| 3 Hono でバックエンドを作る | `chapter-03` |
+| 4 テストを書く | `chapter-04` |
+
+（5章以降は執筆に合わせて追加します）
 
 ### なぜ手順を書かずリンクを貼るのか
 
@@ -2350,15 +2358,32 @@ import { applyD1Migrations, env } from 'cloudflare:test'
 await applyD1Migrations(env.DB, env.TEST_MIGRATIONS)
 ```
 
-`apps/api/test/env.d.ts` で、テスト側から見える環境の型を宣言します。
+`apps/api/test/env.d.ts` で、テスト側から見える環境の型を宣言します。`cloudflare:test` の `env` は `Cloudflare.Env` 型なので、そこに足す形になります。
 
 ```ts
-declare module 'cloudflare:test' {
-  interface ProvidedEnv extends CloudflareBindings {
-    TEST_MIGRATIONS: D1Migration[]
+import type { D1Migration } from '@cloudflare/vitest-pool-workers'
+
+// vitest.config.ts の miniflare.bindings で足したものを、テストから型付きで参照する
+declare global {
+  namespace Cloudflare {
+    interface Env {
+      TEST_MIGRATIONS: D1Migration[]
+    }
   }
 }
 ```
+
+`cloudflare:test` からの import を TypeScript に解決させるため、`apps/api/tsconfig.json` に型定義を足します。
+
+```jsonc
+{
+  "compilerOptions": {
+    "types": ["@cloudflare/vitest-pool-workers/types"]
+  }
+}
+```
+
+**これを忘れると、テストは動くのに `tsc --noEmit` だけが `Module 'cloudflare:test' has no exported member 'SELF'` で落ちます。**
 
 **テストを書く**
 
@@ -2495,7 +2520,112 @@ it('レスポンスにメールアドレスが含まれない', async () => {
 - `npm ci` はロックファイルと `package.json` が一致していないと失敗します。ローカルで `npm install` した結果のロックファイルを必ずコミットしてください
 - `paths` フィルタを使う場合、共通ファイル（ルートの `package.json`、ロックファイル）の変更時にどちらも動くよう設定が必要です
 
-> **TODO(執筆時)**: Cloudflare の公式ドキュメントで、GitHub Actions からのデプロイ手順（推奨されている action、必要な権限）を確認する。
+**フロントエンドも Worker としてデプロイする**
+
+`apps/web` はビルドすると静的ファイルの集まりになります。これを配信する Worker の設定を `apps/web/wrangler.jsonc` に置きます。
+
+```jsonc
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "memo-app-web",
+  "compatibility_date": "2026-08-20",
+  "assets": {
+    "directory": "./dist",
+    // SPA なので、どのパスに来ても index.html を返す
+    "not_found_handling": "single-page-application"
+  }
+}
+```
+
+**`not_found_handling` の指定は必須です。** これが無いと、`/posts/xxx` を直接開いたときに 404 になります。SPA ではルーティングをブラウザ側の JavaScript が担当するため、サーバーはどのパスでも同じ `index.html` を返す必要があります。
+
+`apps/web` にも `wrangler` を入れ、`deploy` スクリプトを足してください。
+
+```bash
+npm i -D -w apps/web wrangler
+```
+
+**ワークフローの構成**
+
+3つのファイルに分けます。デプロイを別ファイルにするのは、`paths` フィルタがワークフロー単位でしか書けないためです。
+
+| ファイル | 起動条件 | 内容 |
+|---|---|---|
+| `.github/workflows/ci.yml` | PR と `main` への push | Lint、整形チェック、型チェック、単体テスト、E2E |
+| `.github/workflows/deploy-api.yml` | `main` への push（`apps/api/**` が変わったとき） | D1 のマイグレーション適用 → デプロイ |
+| `.github/workflows/deploy-web.yml` | `main` への push（`apps/web/**` が変わったとき） | ビルド → デプロイ |
+
+`ci.yml` の要点です。
+
+```yaml
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc   # ローカルと同じバージョンを使う
+          cache: npm
+
+      # 1.4 で入れた safe-chain を CI でも効かせる（--ci でシムを PATH に置く）
+      - name: Install safe-chain
+        run: |
+          curl -fsSL https://github.com/AikidoSec/safe-chain/releases/download/1.5.15/install-safe-chain.sh -o /tmp/install-safe-chain.sh
+          echo "de0565e3d6346407a604e84e639e95fea8758748063da2216bbfdca5feda5dd2  /tmp/install-safe-chain.sh" | sha256sum -c -
+          sh /tmp/install-safe-chain.sh --ci
+          rm /tmp/install-safe-chain.sh
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck -w apps/web
+      - run: npm run typecheck -w apps/api
+      - run: npm test -w apps/web
+      - run: npm test -w apps/api
+```
+
+**`node-version-file: .nvmrc` で、2.1 で作ったファイルを CI でも使い回しています。** バージョンの指定場所が1つで済みます。
+
+safe-chain のインストールスクリプトは、URL にバージョンが入り、チェックサムも一緒に配布されています。**公式 README の最新のコマンドをそのまま貼り付けてください**（ここに載せたものは執筆時点のものです）。
+
+デプロイは Cloudflare 公式の action を使います。
+
+```yaml
+      - name: Apply D1 migrations
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/api
+          command: d1 migrations apply DB --remote
+
+      - name: Deploy Worker
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/api
+          command: deploy --minify
+```
+
+**マイグレーションはデプロイの前に流します。** 逆にすると、新しいコードが存在しない列を触る瞬間が生まれます。
+
+フロント側は、ビルド時に API の URL を埋め込んでからデプロイします。
+
+```yaml
+      # VITE_ の環境変数はビルド時に埋め込まれる。シークレットを入れてはいけない
+      - run: npm run build -w apps/web
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+```
+
+`secrets` ではなく `vars`（GitHub の Variables）を使っているのは、この値が公開されるものだからです。**シークレットではないものをシークレットに入れると、「秘密にすべきもの」の境界が曖昧になります。**
+
+**必要なシークレット**
+
+| 名前 | 種類 | 中身 |
+|---|---|---|
+| `CLOUDFLARE_API_TOKEN` | Secret | Workers と D1 の編集権限を持つ API トークン |
+| `CLOUDFLARE_ACCOUNT_ID` | Secret | Cloudflare のアカウント ID |
+| `VITE_API_URL` | Variable | デプロイした API の URL |
+
+`BETTER_AUTH_SECRET` は GitHub には登録しません。**Cloudflare 側に `wrangler secret put` で入れておけば、デプロイしても消えません。**
 
 ---
 
@@ -2532,6 +2662,45 @@ it('レスポンスにメールアドレスが含まれない', async () => {
 - Hono の CORS ミドルウェア
 - 許可するオリジンを環境変数で切り替える
 - `Authorization` ヘッダーを許可する設定
+
+**実装**
+
+Hono の CORS ミドルウェアを、すべてのルートの手前に置きます。許可するオリジンは 3.5 で用意した環境変数から読みます。
+
+```ts
+import { cors } from 'hono/cors'
+
+const app = new Hono<Env>()
+  // フロントは別オリジンにデプロイするため、明示的に許可する
+  .use('*', (c, next) =>
+    cors({
+      origin: c.env.CORS_ORIGIN,
+      allowHeaders: ['Content-Type', 'Authorization'],
+      allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      exposeHeaders: ['set-auth-token'],
+      credentials: true,
+    })(c, next),
+  )
+```
+
+`cors()` を直接 `use` に渡さず、`(c, next) => cors({...})(c, next)` と包んでいるのは、**`c.env` がリクエストのコンテキスト経由でしか取れないため**です（3.5）。設定を組み立てるのもリクエストごとになります。
+
+`exposeHeaders` に `set-auth-token` を入れるのを忘れないでください。**クロスオリジンでは、ブラウザの JavaScript から読めるレスポンスヘッダーが既定で制限されており、明示しないとトークンを取り出せません。**
+
+**Better Auth 側にも設定が要ります**
+
+CORS を通しただけでは、まだサインアップもログインもできません。Better Auth は、リクエストの `Origin` が自分の `baseURL` と異なる場合、**`Invalid origin` として 403 で弾きます。** フロントのオリジンを信頼する設定を足します。
+
+```ts
+betterAuth({
+  baseURL: env.BETTER_AUTH_URL,
+  // 登録しないと、ブラウザからのサインアップ・ログインが "Invalid origin" で失敗する
+  trustedOrigins: [env.CORS_ORIGIN],
+  // ...
+})
+```
+
+**`curl` では再現しません。** `curl` は `Origin` ヘッダーを送らないためです。ブラウザから初めて叩いたときに気づく種類の設定です。
 
 **完了条件**
 
@@ -2591,7 +2760,84 @@ it('レスポンスにメールアドレスが含まれない', async () => {
 - **3.7 のバリデータを通していないと、リクエストボディの型が付きません**
 - ルート数が増えると型推論が重くなり、エディタの補完が遅くなることがあります
 
-> **TODO(執筆時)**: Hono 公式ドキュメントの RPC の項を確認する。workspace 間で型を参照する際の `tsconfig.json` の設定（`paths` や project references が必要かどうか）を実際に動かして確認すること。
+**workspace をまたいで型を参照する**
+
+必要なのは `tsconfig` の `paths` だけです。**project references もビルド手順の追加も要りません。**
+
+`apps/web/tsconfig.app.json` に追記します。
+
+```jsonc
+{
+  "compilerOptions": {
+    "paths": {
+      "api": ["../api/src/index.ts"]
+    }
+  },
+  "include": ["src", "../api/worker-configuration.d.ts"]
+}
+```
+
+`include` に `worker-configuration.d.ts` を足しているのは、`apps/api` のコードが `CloudflareBindings`（3.5 で生成した型）をグローバルに参照しているためです。これが無いと、フロント側で型解決に失敗します。
+
+**Vite の設定は変更不要です。** 型だけを `import type` で読むので、バンドラはこの import を見る前に消してしまいます。
+
+**クライアントを作る**
+
+`apps/web` に `hono` を入れます（`hono/client` を使うため）。
+
+```bash
+npm i -w apps/web hono
+```
+
+`apps/web/src/lib/api.ts`:
+
+```ts
+import { hc } from 'hono/client'
+import type { AppType } from 'api'
+
+const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8787'
+
+export const TOKEN_KEY = 'memo-app-token'
+
+export const client = hc<AppType>(API_URL, {
+  // オブジェクトで渡すと生成時の値で固定されるため、関数で渡す
+  headers: (): Record<string, string> => {
+    const token = localStorage.getItem(TOKEN_KEY)
+    return token === null ? {} : { Authorization: `Bearer ${token}` }
+  },
+})
+```
+
+呼び出しは、パスがそのままプロパティになります。
+
+```ts
+await client.posts.$get()
+await client.posts.$post({ json: { title, content } })
+await client.posts[':id'].$put({ param: { id }, json: { title, content } })
+await client.posts[':id'].$delete({ param: { id } })
+await client.users[':userId'].posts.$get({ param: { userId } })
+```
+
+**レスポンスの型を再利用する**
+
+`InferResponseType` で、API のレスポンスから型を取り出せます。フロント側で `Post` 型を手書きする必要がなくなります。
+
+```ts
+import type { InferResponseType } from 'hono/client'
+import type { client } from './lib/api'
+
+export type Post = InferResponseType<typeof client.posts.$get>[number]
+```
+
+**この型の `createdAt` は `Date` ではなく `string` です。** 3.6 で触れた通り、JSON になる過程で ISO 文字列に変わるからです。**型がその事実を正しく伝えている**ことが、RPC の分かりやすい利点です。
+
+**完了条件**
+
+エディタ上で、API のパスとリクエストボディが補完される。存在しないパス（`client.nosuchpath`）を書くと型エラーになる。
+
+**追加の躓きポイント**
+
+- **Better Auth のエンドポイント（`/auth/*`）は RPC の型に乗りません。** ワイルドカードで登録しているためです。サインアップ・ログインは素の `fetch` で呼びます（6.5）
 
 ## 6.4 React Query に載せる
 
@@ -2610,6 +2856,24 @@ it('レスポンスにメールアドレスが含まれない', async () => {
 **完了条件**
 
 6.2 と同じ動作をしつつ、コードから手書きのローディング管理が消えている。同じデータを複数のコンポーネントで使っても、リクエストは1回になっている。
+
+**自動リトライを止める**
+
+React Query は、失敗したクエリを既定で3回まで自動的に再試行します。**このアプリでは切ってください。**
+
+```ts
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // 404 や 401 は「取得し直せば直る」ものではないので、既定の自動リトライを止める。
+      // 付けたままだと、見つからないメモの画面が数秒間「読み込み中…」で止まる
+      retry: false,
+    },
+  },
+})
+```
+
+このアプリでクエリが失敗する主な原因は 404（存在しない・権限がない）と 401（未ログイン）で、どちらも再試行しても結果は変わりません。7.2 で作る「非公開メモに未ログインでアクセスしたときの画面」が、リトライを待つ数秒間ずっと「読み込み中…」のままになるのを防げます。
 
 **躓きポイント**
 
@@ -2643,6 +2907,14 @@ it('レスポンスにメールアドレスが含まれない', async () => {
 **躓きポイント**
 
 - **`hc` の `headers` は関数で渡してください。** オブジェクトで渡すと、クライアントを生成した時点の値で固定され、ログイン直後にトークンが反映されません
+- **エラーレスポンスの本文は、空のことがあります。** `await res.json()` を無条件に呼ぶと、画面に出るのが `Unexpected end of JSON input` という無関係なエラーになり、本当の原因（サーバーが 500 を返していること）が見えなくなります。`await res.text()` で受けて、空ならステータスコードを表示してください
+
+  ```ts
+  if (!res.ok) {
+    const body = await res.text()
+    throw new Error(body === '' ? `エラーが発生しました (${res.status})` : body)
+  }
+  ```
 - トークンが失効したときの挙動を決めておかないと、401 が返り続けて画面が固まります
 - ユーザー ID は変更不可なので、サインアップ画面でその旨を明示してください
 
@@ -2872,7 +3144,121 @@ Playwright
 - WSL では Playwright のブラウザに必要なシステムライブラリが不足していることがあります。`npx playwright install-deps` が必要です
 - CI ではヘッドレスモードで動くため、ローカルで見えていた問題が見えなくなります。失敗時のスクリーンショットとトレースを保存する設定を入れておくと切り分けが楽になります
 
-> **TODO(執筆時)**: Playwright 公式ドキュメントで、`webServer` の設定（複数サーバーの起動）と、CI での実行手順を確認する。
+**セットアップ**
+
+```bash
+npm i -D @playwright/test
+npx playwright install chromium
+```
+
+WSL では、ブラウザの動作に必要なシステムライブラリが足りないことがあります。その場合は `npx playwright install --with-deps chromium` を使ってください（`sudo` を求められます）。
+
+**設定**
+
+リポジトリのルートに `playwright.config.ts` を置きます。
+
+```ts
+import { defineConfig } from '@playwright/test'
+
+const WEB_URL = 'http://localhost:5173'
+const API_URL = 'http://localhost:8787'
+
+export default defineConfig({
+  testDir: './tests/e2e',
+  fullyParallel: false,
+  workers: 1,
+  reporter: process.env.CI ? 'dot' : 'list',
+
+  use: {
+    baseURL: WEB_URL,
+    // 失敗したときに原因を追えるようにする
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
+  },
+
+  // フロントと API の2つを起動する。
+  // ローカル D1 の作り直しは、サーバーを起動する前に同じコマンドの中で行う
+  webServer: [
+    {
+      command:
+        'rm -rf apps/api/.wrangler/state/v3/d1 && npm run db:migrate:local -w apps/api && npm run dev -w apps/api',
+      url: `${API_URL}/health`,
+      reuseExistingServer: !process.env.CI,
+      stdout: 'ignore',
+    },
+    {
+      command: 'npm run dev -w apps/web',
+      url: WEB_URL,
+      reuseExistingServer: !process.env.CI,
+      stdout: 'ignore',
+    },
+  ],
+})
+```
+
+`url` に指定したアドレスが応答するまで、Playwright はテストを始めません。API 側に `/health`（3.3）を作っておいたのが、ここで効いてきます。
+
+**データベースのリセットをどこでやるか**
+
+`globalSetup` でローカル D1 を消してはいけません。**`webServer` は `globalSetup` より先に起動する**ため、起動済みのサーバーが開いているファイルを消すことになり、以降のリクエストがすべて 500（`SQLITE_CANTOPEN`）になります。
+
+上記のように、**サーバーを起動するコマンドの中で、起動前に消す**のが確実です。
+
+**テストを書く**
+
+```ts
+import { expect, test, type Page } from '@playwright/test'
+
+// 実行のたびに別のユーザーを使う（サインアップの重複を避ける）
+const unique = () => Math.random().toString(36).slice(2, 8)
+
+const signUp = async (page: Page, userId: string) => {
+  await page.goto('/signup')
+  await page.getByLabel('メールアドレス').fill(`${userId}@example.com`)
+  await page.getByLabel('パスワード').fill('password1234')
+  await page.getByLabel('表示名').fill(`${userId} の表示名`)
+  await page.getByLabel('ユーザー ID', { exact: false }).fill(userId)
+  await page.getByRole('button', { name: '登録する' }).click()
+  await expect(page.getByRole('heading', { name: 'メモ' })).toBeVisible()
+}
+
+test('公開したメモは、ログアウトしても URL から読める', async ({ page }) => {
+  await signUp(page, `u${unique()}`)
+  await createPost(page, '公開する日記', 'みんなに見せる')
+
+  await page.getByRole('link', { name: '公開する日記' }).click()
+  page.once('dialog', (dialog) => dialog.accept())   // 公開の確認ダイアログ
+  await page.getByRole('button', { name: '公開する' }).click()
+  await expect(page.getByText('状態: 公開中')).toBeVisible()
+
+  const url = page.url()
+  await page.getByRole('button', { name: 'ログアウト' }).click()
+
+  await page.goto(url)
+  await expect(page.getByRole('heading', { name: '公開する日記' })).toBeVisible()
+})
+```
+
+**CI での実行**
+
+```yaml
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+        env:
+          CI: "true"
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+```
+
+**追加の躓きポイント**
+
+- **ページ遷移の完了を待たずに入力すると、遷移前のページに書き込みます。** 一覧から詳細へ移動した直後に `getByPlaceholder('タイトル')` を触ると、一覧側の入力欄が先に見つかることがあります（どちらのページにも同じ placeholder があるため）。`await expect(page.getByRole('heading', { name: 'メモの編集' })).toBeVisible()` のように、**遷移先の目印を1つ待ってから**操作してください
+- **部分一致に注意してください。** `getByRole('link', { name: '公開-abc' })` は `非公開-abc` にも一致します。`{ exact: true }` を付けます
+- `window.confirm` を出す操作は、`page.once('dialog', ...)` を**クリックの前に**登録します
 
 ---
 
@@ -2892,7 +3278,26 @@ Playwright
 - `CLAUDE.md` によるプロジェクト固有の指示
 - 権限設定
 
-> **TODO(執筆時)**: 公式ドキュメントで現行のインストール手順を確認する。
+**手順**
+
+WSL のターミナルで実行します（Windows 側ではなく、WSL の中に入れます）。
+
+```bash
+curl -fsSL https://claude.ai/install.sh | bash
+```
+
+**完了条件**
+
+`claude --version` がバージョンを表示する。`claude doctor` が設定の診断結果を表示する。プロジェクトのディレクトリで `claude` を実行すると、対話セッションが始まる。
+
+**躓きポイント**
+
+- **利用には Pro / Max / Team / Enterprise / Console のいずれかのアカウントが必要です。** 無料の Claude.ai プランには含まれません
+- 初回は `claude` を実行するとブラウザでのログインを求められます
+- npm でグローバルインストールする方法もありますが、**`sudo npm install -g` は使わないでください**（権限の問題が起きます）
+- ネイティブインストーラで入れた場合、更新はバックグラウンドで自動的に行われます
+
+参考: https://code.claude.com/docs/en/setup
 
 ## 9.2 herdr
 
@@ -3012,62 +3417,41 @@ docs/
 
 権限がない場合は **403 ではなく 404** を返す。
 
-## Claude Code で確認・確定すべきこと
+## 確認済みの事項
 
-### 全体
+以下は実機で動かして確認済みです（2026年8月時点）。バージョンが上がったら再確認してください。
 
-- 完成コードリポジトリの作成と、章ごとのブランチ運用
-- 記事中のコマンドを実機でなぞり、出力と完了条件を検証する
+| 章 | 確認したこと |
+|---|---|
+| 全体 | 完成コードはこのリポジトリ。章ごとのブランチ（`chapter-02` 〜）を順次追加 |
+| 2 | Node.js の LTS は 24。`create-vite` 9系の生成物（Vite 8 / React 19 / TS 6、Lint は oxlint） |
+| 2.10 | React Router v8。モードの呼称（Framework / Data / Declarative）は変わっていない |
+| 2.11 | ESLint 10 + typescript-eslint + Prettier 3。`eslint-config-prettier` は不要 |
+| 3.2 | `create-hono` 0.19 系の生成物。`"private": true` は入っていない |
+| 3.5 | `wrangler types` が `vars` をリテラル型、`.dev.vars` のキーを `string` として生成する |
+| 3.6 | Drizzle 0.45 / drizzle-kit 0.31。ローカル D1 は `.wrangler/state/v3/d1/miniflare-D1DatabaseObject/<hash>.sqlite` |
+| 3.7 | `@hono/zod-validator` 0.9 + zod 4 |
+| 3.10 | Better Auth 1.7。D1 の組み込みサポートはあるが、この記事は Drizzle アダプタを使う。`drizzleAdapter` には `schema` を渡す必要がある。トークンは `set-auth-token` ヘッダー |
+| 4 | Vitest 4 + Testing Library 16 / `@cloudflare/vitest-pool-workers` 0.22（`cloudflareTest` プラグイン形式） |
+| 6.3 | RPC の型共有は `tsconfig` の `paths` だけで足りる（project references 不要） |
+| 6.1 | CORS に加えて Better Auth の `trustedOrigins` が必要 |
+| 8 | Playwright 1.62。`webServer` は `globalSetup` より先に起動する |
 
-### 1章
+## 未確認の事項
 
-- 記載した公式ドキュメントの URL がすべて生きているか
-- 完了条件のコマンド出力が記載通りか
+**Cloudflare のアカウントが必要なため、まだ実機で確認できていません。**
 
-### 2章
+- 3.1: `wrangler login` の実際の画面遷移
+- 3.6: `wrangler d1 create` の出力
+- 5.1: API トークンの発行画面と、必要な権限の最小セット
+- 5.2: GitHub Actions が実際に通ること（ワークフローは書いたが、push していない）
+- 6.6: 本番環境での通しの動作確認
+- 7.5: デプロイしたフロントに `curl` を投げ、初期 HTML に本文が含まれないことの実測
 
-- 執筆時点の Node.js LTS メジャーバージョン
-- `npm create vite@latest` の生成物の中身
-- React Router のバージョンとモードの呼称
-- 2.11: `usagicollective/usagi-koyashi` の ESLint / Prettier 設定を参照。**転記せず、このロードマップの範囲で説明できるものだけを採用する**
-- 2.11: `eslint-config-prettier` が現在も必要かどうか
+その他:
 
-### 3章
-
-- Cloudflare のサインアップ手順と無料枠
-- `create-hono` の生成物
-- 環境変数・シークレットの現行の設定方法
-- Drizzle + D1 のスキーマ定義とマイグレーション手順
-- ローカル D1 のファイルの場所と名前（2.1 の `.gitignore` に反映）
-- Hono のバリデータミドルウェアのパッケージ名と使い方
-- Better Auth の Drizzle アダプタと bearer プラグインの現行の使い方
-- **Better Auth が D1 を組み込みでサポートする方向に変わっているため、Drizzle アダプタを使う構成が引き続き妥当か再確認する**
-- Better Auth のユーザーテーブルに独自カラム（ユーザー ID、表示名）を追加する方法
-- 任意認証（トークンがあれば解決、無くても通す）ミドルウェアの実装方法
-
-### 4章
-
-- Vitest + Testing Library のセットアップ手順
-- `@cloudflare/vitest-pool-workers` の設定と D1 のテスト環境
-- 複数ユーザーを用意した認可テストの書き方
-
-### 5章
-
-- Cloudflare への GitHub Actions からのデプロイ手順
-
-### 6章
-
-- Hono RPC の workspace 間での型参照（`tsconfig.json` の設定）
-- bearer トークンの発行タイミングと取り出し方
-
-### 7章
-
-- 7.5 の `curl` の出力を実際に確認し、初期 HTML に本文が含まれないことを記事で示す
-
-### 8章
-
-- Playwright の `webServer` 設定（2つのサーバーの起動）
-- WSL での依存ライブラリ
+- 2.9: 図の作成（必要な図の一覧は本文に記載済み）
+- 記事の `docs/` 分割（下記「ドキュメントの構成」を参照）
 
 ## 調査時の原則
 
