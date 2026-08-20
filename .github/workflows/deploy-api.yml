@@ -4,11 +4,11 @@ on:
   push:
     branches: [main]
     paths:
-      - "apps/api/**"
+      - 'apps/api/**'
       # 共通ファイルが変わったときもデプロイし直す
-      - "package.json"
-      - "package-lock.json"
-      - ".github/workflows/deploy-api.yml"
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/deploy-api.yml'
 
 jobs:
   deploy:
@@ -36,7 +36,7 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
         env:
-          CI: "true"
+          CI: 'true'
 
       # 本番の D1 にマイグレーションを適用してからデプロイする
       - name: Apply D1 migrations
