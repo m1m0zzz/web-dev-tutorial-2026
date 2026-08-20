@@ -6,8 +6,10 @@
 # 前の章を直したあと（git rebase -i --root で該当コミットを修正したあと）に実行すると、
 # 各章ブランチを対応するコミットへ移動する。
 #
-#   ./scripts/sync-chapters.sh          # ローカルのブランチを付け直すだけ
-#   ./scripts/sync-chapters.sh --push   # そのまま force push する
+#   ./_writing/sync-chapters.sh          # ローカルのブランチを付け直すだけ
+#   ./_writing/sync-chapters.sh --push   # そのまま force push する
+#
+# 運用の詳細は _writing/README.md を参照。
 #
 # 章のコミットは、コミットメッセージの "N章" で見つける。
 set -euo pipefail
