@@ -44,6 +44,12 @@ jobs:
       - run: npm test -w apps/web
       - run: npm test -w apps/api
 
+      # デプロイの前に E2E も通す
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+        env:
+          CI: 'true'
+
       # 本番の D1 にマイグレーションを適用してからデプロイする
       - name: Apply D1 migrations
         uses: cloudflare/wrangler-action@v4
