@@ -373,6 +373,18 @@ export default defineConfig({
 })
 ```
 
+この設定ファイルは `node:fs` と `node:path` を使うので、`apps/api/tsconfig.json` に型定義の指定を足します。
+
+```jsonc
+{
+  "compilerOptions": {
+    "types": ["node"]
+  }
+}
+```
+
+**足さないと、`npm run typecheck -w apps/api` だけが `Cannot find name 'node:fs'` で落ちます。** 開発サーバーもテストも動くので気づきにくい箇所です。
+
 `npx drizzle-kit studio --config drizzle-studio.config.ts` で起動します。
 
 **完了条件**
