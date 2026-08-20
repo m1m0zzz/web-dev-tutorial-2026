@@ -2,6 +2,7 @@ import { zValidator } from '@hono/zod-validator'
 import { and, desc, eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/d1'
 import { Hono } from 'hono'
+import { cors } from 'hono/cors'
 import { createMiddleware } from 'hono/factory'
 import { z } from 'zod'
 import { createAuth } from './auth'
@@ -50,6 +51,17 @@ const optionalAuth = createMiddleware<Env>(async (c, next) => {
 })
 
 const app = new Hono<Env>()
+  // フロントは別オリジンにデプロイするため、明示的に許可する
+  .use('*', (c, next) =>
+    cors({
+      origin: c.env.CORS_ORIGIN,
+      allowHeaders: ['Content-Type', 'Authorization'],
+      allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      exposeHeaders: ['set-auth-token'],
+      credentials: true,
+    })(c, next),
+  )
+
   .on(['GET', 'POST'], '/auth/*', (c) => createAuth(c.env).handler(c.req.raw))
 
   .get('/health', (c) => c.json({ status: 'ok' }))
