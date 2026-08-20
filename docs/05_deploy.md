@@ -82,13 +82,17 @@ npm i -D -w apps/web wrangler
 
 **ワークフローの構成**
 
-3つのファイルに分けます。デプロイを別ファイルにするのは、`paths` フィルタがワークフロー単位でしか書けないためです。
+**1つのファイル `.github/workflows/ci.yml` にまとめます。** 検査とデプロイをジョブとして並べ、`needs` で順序を決めます。
 
-| ファイル | 起動条件 | 内容 |
+| ジョブ | 起動条件 | 内容 |
 |---|---|---|
-| `.github/workflows/ci.yml` | PR と `main` への push | Lint、整形チェック、型チェック、単体テスト、E2E |
-| `.github/workflows/deploy-api.yml` | `main` への push（`apps/api/**` が変わったとき） | D1 のマイグレーション適用 → デプロイ |
-| `.github/workflows/deploy-web.yml` | `main` への push（`apps/web/**` が変わったとき） | ビルド → デプロイ |
+| `check` | PR と `main` への push | Lint、整形チェック、型チェック、単体テスト |
+| `e2e` | 同上 | E2E テスト（8章で追加します） |
+| `changes` | `main` への push のみ | どちら側が変わったかを差分から判定する |
+| `deploy-api` | `check` `e2e` `changes` の後 | D1 のマイグレーション適用 → デプロイ |
+| `deploy-web` | 同上 | ビルド → デプロイ |
+
+**デプロイを別のワークフローファイルに分けてはいけません。** ワークフローどうしには順序関係がなく、`push` で両方が同時に走ります。つまり**テストの結果を待たずにデプロイされます**。同じワークフローに置いて `needs` で繋ぐことが、順序を保証する唯一の方法です。
 
 `ci.yml` の要点です。
 
@@ -118,6 +122,55 @@ npm i -D -w apps/web wrangler
 **`node-version-file: .nvmrc` で、[2.1](02_frontend.md#21-リポジトリと-workspace-を作る) で作ったファイルを CI でも使い回しています。** バージョンの指定場所が1つで済みます。
 
 safe-chain のインストールスクリプトは、URL にバージョンが入り、チェックサムも一緒に配布されています。**公式 README の最新のコマンドをそのまま貼り付けてください**（ここに載せたものは執筆時点のものです）。
+
+**変更のあった側だけをデプロイする**
+
+`paths` フィルタはワークフロー単位でしか書けないので、**ジョブに分けた時点で使えません。** 代わりに、push の差分から判定するジョブを置きます。
+
+```yaml
+  changes:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      web: ${{ steps.filter.outputs.web }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0        # 差分を取るので履歴が要る
+
+      - id: filter
+        run: |
+          base='${{ github.event.before }}'
+          if ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            # force push などで前のコミットが辿れないときは、両方デプロイする
+            echo "api=true" >> "$GITHUB_OUTPUT"
+            echo "web=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          changed=$(git diff --name-only "$base" HEAD)
+
+          # 共通ファイルが変わったときは、どちらもデプロイし直す
+          if echo "$changed" | grep -qE '^(package\.json|package-lock\.json|\.github/workflows/ci\.yml)$'; then
+            echo "api=true" >> "$GITHUB_OUTPUT"
+            echo "web=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "api=$(echo "$changed" | grep -q '^apps/api/' && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "web=$(echo "$changed" | grep -q '^apps/web/' && echo true || echo false)" >> "$GITHUB_OUTPUT"
+```
+
+デプロイ側は、この出力を見て動くかどうかを決めます。
+
+```yaml
+  deploy-api:
+    needs: [check, changes]     # 8章で e2e を足したら [check, e2e, changes] にする
+    if: needs.changes.outputs.api == 'true'
+```
+
+**`needs` に挙げたジョブが1つでも失敗すると、デプロイのジョブは実行されません。** PR では `changes` が動かないため、デプロイのジョブもスキップされます。
 
 デプロイは Cloudflare 公式の action を使います。
 
