@@ -6,7 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **執筆リポジトリと、その記事が作るアプリのコードが同居しています。**
 
-- `plans/roadmap.md` — 日本語のハンズオン記事「Web アプリ開発 学習ロードマップ」本体（単一ファイル）
+- `docs/00_introduction.md` 〜 `docs/09_devtools.md` — 日本語のハンズオン記事「Web アプリ開発 学習ロードマップ」本体（章ごとに1ファイル）
+- `NOTES.md` — 執筆メモ。**読者向けではありません**（確定した方針・データモデル・エンドポイント一覧・未確認事項）
 - `apps/web` — 記事の2章で作るフロントエンド（Vite + React + React Router）
 - `apps/api` — 記事の3章で作るバックエンド（Hono + Cloudflare Workers + D1 + Drizzle + Better Auth）
 
@@ -82,4 +83,6 @@ npm run db:studio -w apps/api         # Drizzle Studio（ローカル D1）
 - **節番号は章ファイルの数字と一致させる**。章をまたぐ参照が多いので、節の追加・削除で番号がずれたら全体を横断して直す
 - **調査の原則**: 第1に公式ドキュメント。不十分なら実装を読む。ブログ等の二次情報を公式の記述として扱わない
 
-`plans/roadmap.md` 末尾の「執筆メモ」に、確定した方針・データモデル・エンドポイント一覧・未確認事項がまとまっています。作業前にそこを読んでください。将来的にこの単一ファイルを `docs/00_introduction.md` … `docs/09_devtools.md` に分割し、執筆メモはルートの `NOTES.md` へ出す計画です（未実施）。
+`NOTES.md` に、確定した方針・データモデル・エンドポイント一覧・未確認事項がまとまっています。作業前にそこを読んでください。
+
+**章をまたぐ参照はファイル間リンクになっています。** 節を追加・削除して番号がずれたときは、`docs/` 全体と `NOTES.md` を横断してリンクを直してください（アンカーは GitHub の生成規則に従います）。
