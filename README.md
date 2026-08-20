@@ -1,4 +1,4 @@
-# Web アプリ開発 学習ロードマップ
+# Web アプリ開発 チュートリアル 2026
 
 プログラミング経験はあるが Web / JavaScript のエコシステムは初めて、という人に向けた、ハンズオン形式の学習記事です。
 
@@ -8,17 +8,17 @@
 
 [docs/00_introduction.md](docs/00_introduction.md) から読み始めてください。
 
-| 章 | 内容 | ブランチ |
-|---|---|---|
-| [1](docs/01_setup.md) | 環境構築 | — |
-| [2](docs/02_frontend.md) | React でフロントエンドを作る | `chapter-02` |
-| [3](docs/03_backend.md) | Hono でバックエンドを作る | `chapter-03` |
-| [4](docs/04_test.md) | テストを書く | `chapter-04` |
-| [5](docs/05_deploy.md) | デプロイする | `chapter-05` |
-| [6](docs/06_api-integration.md) | フロントから API を呼ぶ | `chapter-06` |
-| [7](docs/07_features.md) | 機能を拡張する | `chapter-07` |
-| [8](docs/08_e2e.md) | E2E テストを行う | `chapter-08` |
-| [9](docs/09_devtools.md) | 任意) 開発環境をさらに整える | — |
+| 章 | ブランチ |
+|---|---|
+| [1 環境構築](docs/01_setup.md) | — |
+| [2 React でフロントエンドを作る](docs/02_frontend.md) | [chapter-02](https://github.com/m1m0zzz/web-dev-tutorial-2026/tree/chapter-02) |
+| [3 Hono でバックエンドを作る](docs/03_backend.md) | [chapter-03](https://github.com/m1m0zzz/web-dev-tutorial-2026/tree/chapter-03) |
+| [4 テストを書く](docs/04_test.md) | [chapter-04](https://github.com/m1m0zzz/web-dev-tutorial-2026/tree/chapter-04) |
+| [5 デプロイする](docs/05_deploy.md) | [chapter-05](https://github.com/m1m0zzz/web-dev-tutorial-2026/tree/chapter-05) |
+| [6 フロントから API を呼ぶ](docs/06_api-integration.md) | [chapter-06](https://github.com/m1m0zzz/web-dev-tutorial-2026/tree/chapter-06) |
+| [7 機能を拡張する](docs/07_features.md) | [chapter-07](https://github.com/m1m0zzz/web-dev-tutorial-2026/tree/chapter-07) |
+| [8 E2E テストを行う](docs/08_e2e.md) | [chapter-08](https://github.com/m1m0zzz/web-dev-tutorial-2026/tree/chapter-08) |
+| [9 任意) 開発環境をさらに整える](docs/09_devtools.md) | — |
 
 ## コード
 
