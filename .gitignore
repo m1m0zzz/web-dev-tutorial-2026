@@ -148,3 +148,7 @@ vite.config.ts.timestamp-*
 .dev.vars.*
 *.sqlite
 *.sqlite-journal
+
+# Playwright
+test-results/
+playwright-report/
