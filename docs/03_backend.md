@@ -6,7 +6,7 @@
 
 **何のために**
 
-このロードマップでは、バックエンドを Cloudflare Workers 上で動かし、データベースに Cloudflare D1 を使います。`wrangler` は Cloudflare が提供する CLI で、ローカル開発とデプロイの両方に使います。
+このチュートリアルでは、バックエンドを Cloudflare Workers 上で動かし、データベースに Cloudflare D1 を使います。`wrangler` は Cloudflare が提供する CLI で、ローカル開発とデプロイの両方に使います。
 
 **手順**
 
@@ -28,7 +28,7 @@ npx wrangler login
 
 **無料枠**
 
-このロードマップで作るものは、いずれも無料枠に収まります。執筆時点の Workers Free プランは以下の通りです。
+このチュートリアルで作るものは、いずれも無料枠に収まります。執筆時点の Workers Free プランは以下の通りです。
 
 | 項目 | 無料枠 |
 |---|---|
