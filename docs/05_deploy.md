@@ -82,17 +82,40 @@ npm i -D -w apps/web wrangler
 
 **ワークフローの構成**
 
-**1つのファイル `.github/workflows/ci.yml` にまとめます。** 検査とデプロイをジョブとして並べ、`needs` で順序を決めます。
+3つのファイルに分けます。**デプロイを別ファイルにするのは、`paths` フィルタがワークフロー単位でしか書けないためです。**
 
-| ジョブ | 起動条件 | 内容 |
+| ファイル | 起動条件 | 内容 |
 |---|---|---|
-| `check` | PR と `main` への push | Lint、整形チェック、型チェック、単体テスト |
-| `e2e` | 同上 | E2E テスト（8章で追加します） |
-| `changes` | `main` への push のみ | どちら側が変わったかを差分から判定する |
-| `deploy-api` | `check` `e2e` `changes` の後 | D1 のマイグレーション適用 → デプロイ |
-| `deploy-web` | 同上 | ビルド → デプロイ |
+| `.github/workflows/ci.yml` | PR と `main` への push | Lint、整形チェック、型チェック、単体テスト、E2E |
+| `.github/workflows/deploy-api.yml` | `main` への push（`apps/api/**` が変わったとき） | 検査 → D1 のマイグレーション適用 → デプロイ |
+| `.github/workflows/deploy-web.yml` | `main` への push（`apps/web/**` が変わったとき） | 検査 → ビルド → デプロイ |
 
-**デプロイを別のワークフローファイルに分けてはいけません。** ワークフローどうしには順序関係がなく、`push` で両方が同時に走ります。つまり**テストの結果を待たずにデプロイされます**。同じワークフローに置いて `needs` で繋ぐことが、順序を保証する唯一の方法です。
+**ワークフローどうしには順序関係がありません。** `main` に push すると `ci.yml` とデプロイのワークフローが同時に走り出すので、**「`ci.yml` が通ってからデプロイする」ということはできません。** 何もしなければ、テストが落ちているのにデプロイは完了する、という状態になります。
+
+対策として、**デプロイのワークフローの中で、同じ検査をもう一度実行してからデプロイします。**
+
+```yaml
+      - run: npm ci
+
+      # デプロイの前に CI と同じ検査を通す。
+      # ワークフローどうしには順序関係がないため、ci.yml の結果は待てない
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck -w apps/web
+      - run: npm run typecheck -w apps/api
+      - run: npm test -w apps/web
+      - run: npm test -w apps/api
+
+      # デプロイの前に E2E も通す（8章で追加します）
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+        env:
+          CI: "true"
+```
+
+Lint とテストが `ci.yml` とデプロイ側で二重に走ることになりますが、**「検査を通っていないものはデプロイされない」ほうが重要です。** 同じジョブの中のステップとして並んでいるので、途中で失敗すればそこで止まり、デプロイのステップには到達しません。
+
+> 別のやり方として、すべてを1つのワークフローにまとめ、ジョブ間を `needs` で繋ぐ方法もあります。二重実行は避けられますが、`paths` フィルタがワークフロー単位の設定なので使えなくなり、「どちら側が変わったか」を push の差分から自分で判定するジョブが必要になります。この記事では記述が単純な前者を採ります。
 
 `ci.yml` の要点です。
 
@@ -119,58 +142,9 @@ npm i -D -w apps/web wrangler
       - run: npm test -w apps/api
 ```
 
-**`node-version-file: .nvmrc` で、[2.1](02_frontend.md#21-リポジトリと-workspace-を作る) で作ったファイルを CI でも使い回しています。** バージョンの指定場所が1つで済みます。
+**`node-version-file: .nvmrc` で、2.1 で作ったファイルを CI でも使い回しています。** バージョンの指定場所が1つで済みます。
 
 safe-chain のインストールスクリプトは、URL にバージョンが入り、チェックサムも一緒に配布されています。**公式 README の最新のコマンドをそのまま貼り付けてください**（ここに載せたものは執筆時点のものです）。
-
-**変更のあった側だけをデプロイする**
-
-`paths` フィルタはワークフロー単位でしか書けないので、**ジョブに分けた時点で使えません。** 代わりに、push の差分から判定するジョブを置きます。
-
-```yaml
-  changes:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    outputs:
-      api: ${{ steps.filter.outputs.api }}
-      web: ${{ steps.filter.outputs.web }}
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0        # 差分を取るので履歴が要る
-
-      - id: filter
-        run: |
-          base='${{ github.event.before }}'
-          if ! git cat-file -e "$base^{commit}" 2>/dev/null; then
-            # force push などで前のコミットが辿れないときは、両方デプロイする
-            echo "api=true" >> "$GITHUB_OUTPUT"
-            echo "web=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          changed=$(git diff --name-only "$base" HEAD)
-
-          # 共通ファイルが変わったときは、どちらもデプロイし直す
-          if echo "$changed" | grep -qE '^(package\.json|package-lock\.json|\.github/workflows/ci\.yml)$'; then
-            echo "api=true" >> "$GITHUB_OUTPUT"
-            echo "web=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          echo "api=$(echo "$changed" | grep -q '^apps/api/' && echo true || echo false)" >> "$GITHUB_OUTPUT"
-          echo "web=$(echo "$changed" | grep -q '^apps/web/' && echo true || echo false)" >> "$GITHUB_OUTPUT"
-```
-
-デプロイ側は、この出力を見て動くかどうかを決めます。
-
-```yaml
-  deploy-api:
-    needs: [check, changes]     # 8章で e2e を足したら [check, e2e, changes] にする
-    if: needs.changes.outputs.api == 'true'
-```
-
-**`needs` に挙げたジョブが1つでも失敗すると、デプロイのジョブは実行されません。** PR では `changes` が動かないため、デプロイのジョブもスキップされます。
 
 デプロイは Cloudflare 公式の action を使います。
 
