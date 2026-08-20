@@ -41,3 +41,7 @@ npm run dev -w apps/api    # API 開発サーバー :8787
 npm test --workspaces      # 単体テスト
 npm run test:e2e           # E2E テスト
 ```
+
+## 執筆者向け
+
+`scripts/sync-chapters.sh` は、`main` の履歴から章ブランチを付け直すためのものです。記事の手順には出てきません。詳細は [CLAUDE.md](CLAUDE.md) を参照してください。
