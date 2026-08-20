@@ -1,58 +1,59 @@
-import { useState } from 'react'
-import { Route, Routes } from 'react-router'
+import { Navigate, Route, Routes } from 'react-router'
+import { useSession, useSignOut } from './hooks/useSession'
+import { LoginPage } from './pages/LoginPage'
 import { PostDetailPage } from './pages/PostDetailPage'
 import { PostListPage } from './pages/PostListPage'
-import type { Post } from './types'
+import { SignUpPage } from './pages/SignUpPage'
 
-function App() {
-  const [posts, setPosts] = useState<Post[]>([])
+function Header() {
+  const { data: user } = useSession()
+  const signOut = useSignOut()
 
-  const addPost = (values: { title: string; content: string }) => {
-    const now = Date.now()
-    const newPost: Post = {
-      id: crypto.randomUUID(),
-      title: values.title,
-      content: values.content,
-      createdAt: now,
-      updatedAt: now,
-    }
-    setPosts((prev) => [...prev, newPost])
-  }
-
-  const updatePost = (
-    id: string,
-    values: { title: string; content: string },
-  ) => {
-    setPosts((prev) =>
-      prev.map((post) =>
-        post.id === id ? { ...post, ...values, updatedAt: Date.now() } : post,
-      ),
-    )
-  }
-
-  const deletePost = (id: string) => {
-    setPosts((prev) => prev.filter((post) => post.id !== id))
-  }
+  if (user === null || user === undefined) return null
 
   return (
-    <Routes>
-      <Route
-        path="/"
-        element={
-          <PostListPage posts={posts} onAdd={addPost} onDelete={deletePost} />
-        }
-      />
-      <Route
-        path="/posts/:id"
-        element={
-          <PostDetailPage
-            posts={posts}
-            onUpdate={updatePost}
-            onDelete={deletePost}
-          />
-        }
-      />
-    </Routes>
+    <header className="app-header">
+      <span>{user.name}</span>
+      <button onClick={signOut}>ログアウト</button>
+    </header>
+  )
+}
+
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  const { data: user, isPending } = useSession()
+
+  if (isPending) return <main>読み込み中…</main>
+  if (user === null || user === undefined)
+    return <Navigate to="/login" replace />
+
+  return <>{children}</>
+}
+
+function App() {
+  return (
+    <>
+      <Header />
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignUpPage />} />
+        <Route
+          path="/"
+          element={
+            <RequireAuth>
+              <PostListPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/posts/:id"
+          element={
+            <RequireAuth>
+              <PostDetailPage />
+            </RequireAuth>
+          }
+        />
+      </Routes>
+    </>
   )
 }
 

@@ -54,6 +54,9 @@ export const createAuth = (env: CloudflareBindings) =>
       schema,
     }),
     baseURL: env.BETTER_AUTH_URL,
+    // フロントは別オリジンで動くため、明示的に信頼するオリジンとして登録する。
+    // 登録しないと、ブラウザからのサインアップ・ログインが "Invalid origin" で失敗する
+    trustedOrigins: [env.CORS_ORIGIN],
     secret: env.BETTER_AUTH_SECRET,
   })
 
