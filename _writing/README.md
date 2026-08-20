@@ -107,6 +107,8 @@ git rebase --continue        # ← ここで --amend は使わない
 > git reset --hard origin/main      # push 前で rebase を終えてしまったなら、リモートの状態に戻す
 > ```
 >
+> **`git add -A` にも注意してください。** 章のコミットを直しているときの `.gitignore` は「その章の時点」の内容です。あとの章で無視するようになった生成物（`test-results/` など）が手元にあると、巻き込んでコミットしてしまいます。`git status` を見て、意図したファイルだけを `git add` してください。
+>
 > **`./_writing/sync-chapters.sh` が検出器になります。** 章のコミットが 1 件に定まらないと `main に "8章" のコミットが 0 件見つかりました` と表示して停止するので、**push する前に必ず一度実行してください。**
 
 ```bash
