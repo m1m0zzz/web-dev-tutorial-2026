@@ -14,6 +14,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 章ごとのブランチ（`chapter-02`、`chapter-03` …）は、各章を終えた時点のコードのスナップショットです。**章の作業が一区切りしたらコミットし、対応するブランチを切ります。** `main` が最新です。
 
+### 前の章を直したとき
+
+`main` は「1章 = 1コミット」の直線的な履歴で、章ブランチはその途中を指しているだけです。**章ブランチを個別に編集せず、`main` の履歴を直してから付け直します。**
+
+```bash
+# 1. 該当する章のコミットを直す（例: 2章）
+git rebase -i --root main          # 直したいコミットを edit → 修正 → git rebase --continue
+
+# 2. 章ブランチを、対応するコミットに付け直す
+git log --oneline main             # 各章のコミットハッシュを確認
+git branch -f chapter-02 <sha>     # 直した章と、それ以降の章すべて
+git branch -f chapter-03 <sha>
+# ... chapter-08 まで
+
+# 3. まとめて force push
+git push --force-with-lease origin main chapter-02 chapter-03 chapter-04 \
+  chapter-05 chapter-06 chapter-07 chapter-08
+```
+
+**スクリプトは置きません。** このリポジトリは学習者が読むものなので、記事に出てこない自動化を混ぜないという方針です。
+
+付け直したあとは、GitHub Actions の CI を `workflow_dispatch` で手動実行してください。`chapters` ジョブが各章ブランチを checkout して `npm ci` / lint / 型チェック / テスト / ビルドを回すので、**上流の章を直した結果、後の章が壊れていないかを確認できます。**
+
 ## コマンド
 
 すべてリポジトリのルートで実行します（`-w` でワークスペースを指定）。
