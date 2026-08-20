@@ -4,7 +4,7 @@ package-lock.json
 
 # 記事本文。整形で差分が暴れるため対象外にする
 *.md
-plans
+docs
 
 # 生成物
 apps/api/drizzle
