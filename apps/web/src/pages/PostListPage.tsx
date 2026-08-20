@@ -1,19 +1,22 @@
 import { PostForm } from '../components/PostForm'
 import { PostList } from '../components/PostList'
-import type { Post } from '../types'
+import { useCreatePost, useDeletePost, usePosts } from '../hooks/usePosts'
 
-type Props = {
-  posts: Post[]
-  onAdd: (values: { title: string; content: string }) => void
-  onDelete: (id: string) => void
-}
+export function PostListPage() {
+  const { data: posts, isPending, isError } = usePosts()
+  const createPost = useCreatePost()
+  const deletePost = useDeletePost()
 
-export function PostListPage({ posts, onAdd, onDelete }: Props) {
   return (
     <main>
       <h1>メモ</h1>
-      <PostForm onAdd={onAdd} />
-      <PostList posts={posts} onDelete={onDelete} />
+      <PostForm onAdd={(values) => createPost.mutate(values)} />
+
+      {isPending && <p>読み込み中…</p>}
+      {isError && <p role="alert">メモの取得に失敗しました</p>}
+      {posts !== undefined && (
+        <PostList posts={posts} onDelete={(id) => deletePost.mutate(id)} />
+      )}
     </main>
   )
 }
