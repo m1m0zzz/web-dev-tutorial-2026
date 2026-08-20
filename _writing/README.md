@@ -5,6 +5,7 @@
 | ファイル | 中身 |
 |---|---|
 | [`CLAUDE.md`](CLAUDE.md) | 執筆時の指示（節の書式、参照リンク、調査の原則など） |
+| [`NOTES.md`](NOTES.md) | 執筆メモ（確定した方針・データモデル・エンドポイント一覧・確認済み/未確認の事項） |
 | [`sync-chapters.sh`](sync-chapters.sh) | 章ブランチを `main` の履歴に合わせて付け直す |
 
 ## 履歴とブランチのモデル
@@ -36,7 +37,7 @@ ba0398f  test: 4章 テストを書く                          <- chapter-04
 | `.github/workflows/*.yml` | 5章のコミット | 記事 5.2 で読者が作る |
 | `playwright.config.ts`、`tests/e2e/**` | 8章のコミット | 記事 8章で読者が作る |
 | `package.json`、`package-lock.json` | 依存を追加した章のコミット | 記事の手順で `npm i` するタイミング |
-| `docs/**`、`NOTES.md`、`README.md`、`CLAUDE.md`、`_writing/**`、`renovate.json` | **先端**（ケース1） | 記事に出てこない。章ブランチには含まれない |
+| `docs/**`、`README.md`、`CLAUDE.md`、`_writing/**`、`renovate.json` | **先端**（ケース1） | 記事に出てこない。章ブランチには含まれない |
 
 **章ブランチには、記事に出てくるファイルしか入っていません。** `CLAUDE.md` や `README.md` を直しても章ブランチは変わりませんし、変える必要もありません。
 
