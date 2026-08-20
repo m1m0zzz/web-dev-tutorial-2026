@@ -1,19 +1,14 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
+import { useDeletePost, usePost, useUpdatePost } from '../hooks/usePosts'
 import type { Post } from '../types'
 
-type Props = {
-  posts: Post[]
-  onUpdate: (id: string, values: { title: string; content: string }) => void
-  onDelete: (id: string) => void
-}
-
-export function PostDetailPage({ posts, onUpdate, onDelete }: Props) {
+export function PostDetailPage() {
   const { id } = useParams()
-  const navigate = useNavigate()
-  const post = posts.find((p) => p.id === id)
+  const { data: post, isPending, isError } = usePost(id!)
 
-  if (post === undefined) {
+  if (isPending) return <main>読み込み中…</main>
+  if (isError || post === undefined) {
     return (
       <main>
         <p>メモが見つかりませんでした。</p>
@@ -22,35 +17,23 @@ export function PostDetailPage({ posts, onUpdate, onDelete }: Props) {
     )
   }
 
-  return (
-    <PostEditor
-      key={post.id}
-      post={post}
-      onUpdate={onUpdate}
-      onDelete={onDelete}
-      navigate={navigate}
-    />
-  )
+  return <PostEditor key={post.id} post={post} />
 }
 
-type EditorProps = {
-  post: Post
-  onUpdate: (id: string, values: { title: string; content: string }) => void
-  onDelete: (id: string) => void
-  navigate: (to: string) => void
-}
-
-function PostEditor({ post, onUpdate, onDelete, navigate }: EditorProps) {
+function PostEditor({ post }: { post: Post }) {
   const [title, setTitle] = useState(post.title)
   const [content, setContent] = useState(post.content)
+  const updatePost = useUpdatePost()
+  const deletePost = useDeletePost()
+  const navigate = useNavigate()
 
-  const handleUpdate = () => {
-    onUpdate(post.id, { title, content })
+  const handleUpdate = async () => {
+    await updatePost.mutateAsync({ id: post.id, title, content })
     navigate('/')
   }
 
-  const handleDelete = () => {
-    onDelete(post.id)
+  const handleDelete = async () => {
+    await deletePost.mutateAsync(post.id)
     navigate('/')
   }
 
@@ -59,10 +42,15 @@ function PostEditor({ post, onUpdate, onDelete, navigate }: EditorProps) {
       <Link to="/">一覧に戻る</Link>
       <h1>メモの編集</h1>
       <div className="post-form">
-        <input value={title} onChange={(e) => setTitle(e.target.value)} />
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="タイトル"
+        />
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
+          placeholder="本文"
         />
         <div className="actions">
           <button onClick={handleUpdate}>更新</button>
