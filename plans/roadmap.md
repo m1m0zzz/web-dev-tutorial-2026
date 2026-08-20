@@ -33,8 +33,21 @@ https://github.com/m1m0zzz/web-dev-tutorial-2026
 | 2 React でフロントエンドを作る | `chapter-02` |
 | 3 Hono でバックエンドを作る | `chapter-03` |
 | 4 テストを書く | `chapter-04` |
+| 5 デプロイする | `chapter-05` |
+| 6 フロントから API を呼ぶ | `chapter-06` |
+| 7 機能を拡張する | `chapter-07` |
+| 8 E2E テストを行う | `chapter-08` |
 
-（5章以降は執筆に合わせて追加します）
+1章は環境構築だけなので、対応するブランチはありません。9章はコードを変更しません。
+
+途中の章から始める場合は、そのブランチを checkout してから読み進めてください。
+
+```bash
+git clone https://github.com/m1m0zzz/web-dev-tutorial-2026.git
+cd web-dev-tutorial-2026
+git checkout chapter-03   # 3章を終えた時点の状態
+npm install
+```
 
 ### なぜ手順を書かずリンクを貼るのか
 
