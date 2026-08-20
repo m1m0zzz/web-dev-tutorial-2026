@@ -32,6 +32,12 @@ jobs:
       - run: npm test -w apps/web
       - run: npm test -w apps/api
 
+      # デプロイの前に E2E も通す
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+        env:
+          CI: "true"
+
       # VITE_ の環境変数はビルド時に埋め込まれる。シークレットを入れてはいけない
       - run: npm run build -w apps/web
         env:
