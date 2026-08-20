@@ -5,3 +5,12 @@ package-lock.json
 # 記事本文。整形で差分が暴れるため対象外にする
 *.md
 plans
+
+# 生成物
+apps/api/drizzle
+apps/api/worker-configuration.d.ts
+apps/api/src/db/auth-schema.ts
+
+# テストの実行結果
+test-results
+playwright-report
