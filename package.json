@@ -1,5 +1,16 @@
 {
   "name": "memo-app",
   "private": true,
-  "workspaces": ["apps/*"]
+  "workspaces": [
+    "apps/*"
+  ],
+  "devDependencies": {
+    "oxfmt": "^0.73.0",
+    "oxlint": "^1.79.0"
+  },
+  "scripts": {
+    "lint": "oxlint",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check"
+  }
 }
