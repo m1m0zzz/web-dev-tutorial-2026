@@ -22,10 +22,10 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.22.0",
-    "@libsql/client": "^0.17.4",
-    "drizzle-kit": "^0.31.10",
-    "vitest": "^4.1.11",
+    "@cloudflare/vitest-pool-workers": "0.22.0",
+    "@libsql/client": "0.17.4",
+    "drizzle-kit": "0.31.10",
+    "vitest": "4.1.11",
     "wrangler": "^4.110.0"
   }
 }
