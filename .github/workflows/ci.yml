@@ -4,6 +4,8 @@ on:
   pull_request:
   push:
     branches: [main]
+  # 章ブランチを付け直したあとに手動で回せるようにする
+  workflow_dispatch:
 
 jobs:
   check:
@@ -60,3 +62,35 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+  chapters:
+    name: 章ブランチ (${{ matrix.branch }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        branch:
+          - chapter-02
+          - chapter-03
+          - chapter-04
+          - chapter-05
+          - chapter-06
+          - chapter-07
+          - chapter-08
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ matrix.branch }}
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      # 章によって存在するスクリプトが違うため --if-present で回す
+      - run: npm run lint
+      - run: npm run typecheck --workspaces --if-present
+      - run: npm test --workspaces --if-present
+      - run: npm run build -w apps/web
