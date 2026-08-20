@@ -21,20 +21,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # 1. 該当する章のコミットを直す（例: 2章）
-git rebase -i --root main          # 直したいコミットを edit → 修正 → git rebase --continue
+git rebase -i --root main       # 直したいコミットを edit → 修正 → git rebase --continue
 
-# 2. 章ブランチを、対応するコミットに付け直す
-git log --oneline main             # 各章のコミットハッシュを確認
-git branch -f chapter-02 <sha>     # 直した章と、それ以降の章すべて
-git branch -f chapter-03 <sha>
-# ... chapter-08 まで
-
-# 3. まとめて force push
-git push --force-with-lease origin main chapter-02 chapter-03 chapter-04 \
-  chapter-05 chapter-06 chapter-07 chapter-08
+# 2. 章ブランチを付け直して force push する
+./scripts/sync-chapters.sh --push
 ```
 
-**スクリプトは置きません。** このリポジトリは学習者が読むものなので、記事に出てこない自動化を混ぜないという方針です。
+`scripts/sync-chapters.sh` は**執筆者向け**のツールです。コミットメッセージの「N章」から各章のコミットを引き、`chapter-0N` をそこへ移動します。`--push` を付けなければローカルのブランチを付け直すだけなので、先に結果を見てから push できます。作業ツリーが汚れている場合と、章のコミットが 1 件に定まらない場合は実行を拒否します。
 
 付け直したあとは、GitHub Actions の CI を `workflow_dispatch` で手動実行してください。`chapters` ジョブが各章ブランチを checkout して `npm ci` / lint / 型チェック / テスト / ビルドを回すので、**上流の章を直した結果、後の章が壊れていないかを確認できます。**
 
