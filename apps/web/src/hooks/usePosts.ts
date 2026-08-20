@@ -32,7 +32,13 @@ export const useCreatePost = () => {
       if (!res.ok) throw new Error('メモの作成に失敗しました')
       return await res.json()
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: postsKey }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: postsKey })
+      // 公開状態やタイトルの変更は、公開一覧とユーザーページにも影響する。
+      // ここを忘れると、非公開に戻したメモが /public に残って見える
+      queryClient.invalidateQueries({ queryKey: publicPostsKey })
+      queryClient.invalidateQueries({ queryKey: ['user-posts'] })
+    },
   })
 }
 
@@ -51,7 +57,13 @@ export const useUpdatePost = () => {
       if (!res.ok) throw new Error('メモの更新に失敗しました')
       return await res.json()
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: postsKey }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: postsKey })
+      // 公開状態やタイトルの変更は、公開一覧とユーザーページにも影響する。
+      // ここを忘れると、非公開に戻したメモが /public に残って見える
+      queryClient.invalidateQueries({ queryKey: publicPostsKey })
+      queryClient.invalidateQueries({ queryKey: ['user-posts'] })
+    },
   })
 }
 
@@ -63,6 +75,37 @@ export const useDeletePost = () => {
       const res = await client.posts[':id'].$delete({ param: { id } })
       if (!res.ok) throw new Error('メモの削除に失敗しました')
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: postsKey }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: postsKey })
+      // 公開状態やタイトルの変更は、公開一覧とユーザーページにも影響する。
+      // ここを忘れると、非公開に戻したメモが /public に残って見える
+      queryClient.invalidateQueries({ queryKey: publicPostsKey })
+      queryClient.invalidateQueries({ queryKey: ['user-posts'] })
+    },
   })
 }
+
+export const publicPostsKey = ['public-posts'] as const
+export const userPostsKey = (userId: string) => ['user-posts', userId] as const
+
+export const usePublicPosts = () =>
+  useQuery({
+    queryKey: publicPostsKey,
+    queryFn: async () => {
+      const res = await client.public.posts.$get()
+      if (!res.ok) throw new Error('公開メモの取得に失敗しました')
+      return await res.json()
+    },
+  })
+
+export const useUserPosts = (userId: string) =>
+  useQuery({
+    queryKey: userPostsKey(userId),
+    queryFn: async () => {
+      const res = await client.users[':userId'].posts.$get({
+        param: { userId },
+      })
+      if (!res.ok) throw new Error('ユーザーが見つかりませんでした')
+      return await res.json()
+    },
+  })
