@@ -66,3 +66,25 @@ export const useDeletePost = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: postsKey }),
   })
 }
+
+export const usePublicPosts = () =>
+  useQuery({
+    queryKey: ['public-posts'],
+    queryFn: async () => {
+      const res = await client.public.posts.$get()
+      if (!res.ok) throw new Error('公開メモの取得に失敗しました')
+      return await res.json()
+    },
+  })
+
+export const useUserPosts = (userId: string) =>
+  useQuery({
+    queryKey: ['user-posts', userId],
+    queryFn: async () => {
+      const res = await client.users[':userId'].posts.$get({
+        param: { userId },
+      })
+      if (!res.ok) throw new Error('ユーザーが見つかりませんでした')
+      return await res.json()
+    },
+  })
