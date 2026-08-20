@@ -59,7 +59,7 @@ echo "24" > .nvmrc
 
 ### `.gitignore` に追記する
 
-Node テンプレートには `node_modules/` や `.env` 系が既に含まれています。ここに Cloudflare 関連を追記します。[3章](03_backend.md)で使うものですが、シークレットを誤ってコミットする窓を開けないよう、先に設定しておきます。
+Node テンプレートには `node_modules/` や `.env` 系が既に含まれています。ここに、あとの章で生成されるものを追記します。使うのは[3章](03_backend.md)以降ですが、シークレットや生成物を誤ってコミットする窓を開けないよう、先に設定しておきます。
 
 ```
 # Cloudflare
@@ -68,6 +68,10 @@ Node テンプレートには `node_modules/` や `.env` 系が既に含まれ�
 .dev.vars.*
 *.sqlite
 *.sqlite-journal
+
+# Playwright
+test-results/
+playwright-report/
 ```
 
 `.dev.vars` は Cloudflare Workers のローカル開発で環境変数とシークレットを書くファイルです（[3.5](03_backend.md#35-環境変数とシークレット) で扱います）。**API キーや認証用のシークレットが平文で入るため、絶対にコミットしてはいけません。**
@@ -79,6 +83,8 @@ apps/api/.wrangler/state/v3/d1/miniflare-D1DatabaseObject/<ハッシュ>.sqlite
 ```
 
 `.wrangler/` を丸ごと無視しているので、この SQLite ファイルもコミット対象から外れます。`*.sqlite` の2行は保険です（`wrangler` の実行位置によっては別の場所に出ることがあるため）。
+
+`test-results/` と `playwright-report/` は、[8章](08_e2e.md)の E2E テストが吐く実行結果とレポートです。テストを走らせるたびに中身が変わるので、コミットする意味がありません。**先に書いておかないと、`git add -A` で一度混入してしまいます。** 一度追跡されたファイルは、あとから `.gitignore` に書いても無視されず、`git rm --cached` が必要になります。
 
 **躓きポイント**
 
