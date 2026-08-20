@@ -34,3 +34,32 @@ jobs:
       - run: npm run typecheck -w apps/api
       - run: npm test -w apps/web
       - run: npm test -w apps/api
+
+  e2e:
+    name: E2E テスト
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      # ブラウザ本体と、動作に必要なシステムライブラリを入れる
+      - run: npx playwright install --with-deps chromium
+
+      - run: npm run test:e2e
+        env:
+          CI: 'true'
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  # main への push のときだけ、どちら側が変わったかを調べる
