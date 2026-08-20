@@ -235,10 +235,12 @@ declare global {
 ```jsonc
 {
   "compilerOptions": {
-    "types": ["@cloudflare/vitest-pool-workers/types"]
+    "types": ["node", "@cloudflare/vitest-pool-workers/types"]
   }
 }
 ```
+
+`"node"` は 3.6 で足したものです。**`types` は「これだけを読み込む」という指定なので、追記する形にしてください。** 上書きすると `drizzle-studio.config.ts` が型エラーになります。
 
 **これを忘れると、テストは動くのに `tsc --noEmit` だけが `Module 'cloudflare:test' has no exported member 'SELF'` で落ちます。**
 
