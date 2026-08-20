@@ -15,6 +15,26 @@
       "migrations_dir": "drizzle",
     },
   ],
+  // 本番だけ値を変えたいものは、環境として分ける。
+  // vars と d1_databases は環境に継承されないため、ここに書き直す
+  "env": {
+    "production": {
+      // 書かないと Worker 名が memo-app-api-production になり、URL が変わる
+      "name": "memo-app-api",
+      "vars": {
+        "CORS_ORIGIN": "https://memo-app-web.<サブドメイン>.workers.dev",
+        "BETTER_AUTH_URL": "https://memo-app-api.<サブドメイン>.workers.dev",
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "memo-app-db",
+          "database_id": "local",
+          "migrations_dir": "drizzle",
+        },
+      ],
+    },
+  },
   // "compatibility_flags": [
   //   "nodejs_compat"
   // ],

@@ -20,7 +20,12 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+
+    /* apps/api の型を参照する（6.3 Hono RPC） */
+    "paths": {
+      "api": ["../api/src/index.ts"]
+    }
   },
-  "include": ["src"]
+  "include": ["src", "../api/worker-configuration.d.ts"]
 }
