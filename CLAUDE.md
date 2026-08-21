@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+指示は日本語で行います。
 
 ## 最初に: モードを判定する
 
