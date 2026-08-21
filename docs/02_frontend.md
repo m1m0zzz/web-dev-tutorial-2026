@@ -49,6 +49,7 @@ npm run dev -w apps/web
 | `tsconfig.app.json` | アプリ本体（`src/`）向けの TypeScript 設定 |
 | `tsconfig.node.json` | `vite.config.ts` など、Node.js 側で動くファイル向けの設定 |
 | `.oxlintrc.json` | oxlint（Lint ツール）の設定。[2.10](#210-任意-eslint--prettier-のセットアップ) で扱います |
+| `README.md` | テンプレートの説明。oxlint 前提の内容なので、[2.10](#210-任意-eslint--prettier-のセットアップ) で消します |
 
 `public/` と `src/assets/` の違いは、**バンドラを通るかどうか**です。`src/assets/` の画像は `import` して使い、ビルド時にハッシュ付きのファイル名に変換されます。`public/` のファイルはパスをそのまま書いて参照します。
 
@@ -98,8 +99,8 @@ const [posts, setPosts] = useState<Post[]>([])
 export function PostList({ posts, onDelete }: Props) {
 
 // スプレッド構文（2.6）— 配列に追加する / オブジェクトの一部だけを差し替える
-setPosts([...posts, newPost])
-setPosts(posts.map((post) => (post.id === id ? { ...post, ...values } : post)))
+setPosts((prev) => [...prev, newPost])
+setPosts((prev) => prev.map((post) => (post.id === id ? { ...post, ...values } : post)))
 
 // import / export（2.7）
 import { PostItem } from './PostItem'
@@ -356,7 +357,7 @@ type Post = {
 
 > [!TIP]
 > - **`key` にインデックスを使わないでください。** 並び替えや削除をしたときに、React が要素を取り違えて表示が壊れます。一意な id を持たせます
-> - **配列を直接変更してはいけません。** `posts.push(newPost)` は状態の変更として認識されません。`setPosts([...posts, newPost])` のように新しい配列を作ります
+> - **配列を直接変更してはいけません。** `posts.push(newPost)` は状態の変更として認識されません。`setPosts((prev) => [...prev, newPost])` のように新しい配列を作ります
 > - 入力欄に `value` を指定したのに `onChange` を書かないと、文字が入力できなくなります
 
 **id の生成**
@@ -400,25 +401,27 @@ const addPost = () => {
     updatedAt: now,
   }
 
-  setPosts([...posts, newPost])
+  setPosts((prev) => [...prev, newPost])
   setTitle('')
   setContent('')
 }
 
 const updatePost = (id: string, values: { title?: string; content?: string }) => {
-  setPosts(
-    posts.map((post) =>
+  setPosts((prev) =>
+    prev.map((post) =>
       post.id === id ? { ...post, ...values, updatedAt: Date.now() } : post,
     ),
   )
 }
 
 const deletePost = (id: string) => {
-  setPosts(posts.filter((post) => post.id !== id))
+  setPosts((prev) => prev.filter((post) => post.id !== id))
 }
 ```
 
 追加・更新・削除が、それぞれスプレッド構文・`map`・`filter` に対応しています。**どれも元の配列を変更せず、新しい配列を作って `setPosts` に渡している**ことを確認してください。
+
+3つとも `setPosts((prev) => ...)` の関数形式で書いています。[2.4](#24-カウンター) で触れたとおり、**今の状態を元に次の状態を決めるときは常にこの形にします。** `setPosts([...posts, newPost])` と書くと、この関数が作られた時点の `posts` を見るため、1回の操作で複数回更新したときに取りこぼします。
 
 描画側は `map` でリストを作り、各要素に `key` を付けます。
 
@@ -589,7 +592,21 @@ createRoot(document.getElementById('root')!).render(
 ```tsx
 function App() {
   const [posts, setPosts] = useState<Post[]>([])
-  // addPost / updatePost / deletePost は 2.6 と同じ
+
+  // 入力欄は PostForm に移ったので、addPost は値を引数で受け取る形になります
+  const addPost = (values: { title: string; content: string }) => {
+    const now = Date.now()
+    const newPost: Post = {
+      id: crypto.randomUUID(),
+      title: values.title,
+      content: values.content,
+      createdAt: now,
+      updatedAt: now,
+    }
+    setPosts((prev) => [...prev, newPost])
+  }
+
+  // updatePost / deletePost は 2.6 と同じ
 
   return (
     <Routes>
@@ -647,10 +664,12 @@ ESLint はコードの問題を検出するツール、Prettier は整形する�
 
 ```bash
 npm uninstall -w apps/web oxlint
-rm apps/web/.oxlintrc.json
+rm apps/web/.oxlintrc.json apps/web/README.md
 ```
 
 `apps/web/package.json` の `"lint": "oxlint"` も削除してください。
+
+`apps/web/README.md` も一緒に消しています。テンプレートが置いていく説明文で、中身は oxlint の設定方法です。**残しておくと、この記事の構成と食い違ったものが手元に残ります。**
 
 > oxlint や Biome（Lint と整形を1つにまとめたツール）は、ESLint + Prettier より高速で設定も少なく済みます。この記事が ESLint + Prettier を選ぶのは、情報量が圧倒的に多く、詰まったときに調べやすいためです。**この選択は好みの範囲で、後から乗り換えられます。**
 

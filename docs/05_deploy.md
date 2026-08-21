@@ -82,7 +82,7 @@ npm i -D -w apps/web wrangler
 
 | ファイル | 起動条件 | 内容 |
 |---|---|---|
-| `.github/workflows/ci.yml` | PR と `main` への push | Lint、整形チェック、型チェック、単体テスト、E2E |
+| `.github/workflows/ci.yml` | PR と `main` への push | Lint、整形チェック、型チェック、単体テスト（E2E は [8章](08_e2e.md)で足します） |
 | `.github/workflows/deploy-api.yml` | `main` への push（`apps/api/**` が変わったとき） | 検査 → D1 のマイグレーション適用 → デプロイ |
 | `.github/workflows/deploy-web.yml` | `main` への push（`apps/web/**` が変わったとき） | 検査 → ビルド → デプロイ |
 
