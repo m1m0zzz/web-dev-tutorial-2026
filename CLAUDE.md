@@ -2,7 +2,20 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-**記事を執筆・保守する場合は、まず [`_writing/CLAUDE.md`](_writing/CLAUDE.md) を読んでください。** この文書は、記事を読みながらアプリを作る側（学習者）向けです。
+## 最初に: モードを判定する
+
+作業を始める前に `.mode` を読んでください。
+
+```bash
+cat .mode 2>/dev/null || echo user
+```
+
+| 値 | 立場 | 従う指示 |
+|---|---|---|
+| `author` | 執筆者。記事を書く・直す | まず [`_writing/CLAUDE.md`](_writing/CLAUDE.md) を読み、その指示に従う。この文書のコマンドとアーキテクチャも併せて使う |
+| `user`（またはファイルが無い） | 学習者。記事を読みながらアプリを作る | この文書だけに従う。`docs/**`・`_writing/**`・`README.md` は教材なので変更しない |
+
+`.mode` は執筆者用のファイルで、`.gitignore` に入れてありコミットされません。**無い場合は `user` として扱ってください。**
 
 ## このリポジトリの構成
 
