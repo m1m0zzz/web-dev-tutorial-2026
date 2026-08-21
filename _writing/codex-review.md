@@ -11,21 +11,23 @@ codex exec --sandbox read-only "コミット <sha>（N章）が導入したコ�
 > [!NOTE]
 > 分類は執筆者の判断です。**「対応しない」は指摘が誤りという意味ではありません。** このチュートリアルは Web/JS が初めての読者を対象にしており、章の目的から外れるものは意図的に落としています。
 
-## 対応する
+## 対応済み
 
-| 章 | 場所 | 内容 |
-|---|---|---|
-| 2 | `apps/web/index.html` | `lang="en"` のまま。日本語アプリなので `lang="ja"` |
-| 2 | `apps/web/src/App.tsx` | `setPosts(...)` が値形式。記事 2.4 で「前の値を使うときは関数形式」と教えているのに、実装が従っていない |
-| 2 | `apps/web/README.md` | `create-vite` のテンプレート README が oxlint 前提のまま残っている。2.10 で ESLint に差し替えたので削除するか書き換える |
-| 2 | `docs/02_frontend.md` 2.9 | 「CRUD 関数は 2.6 と同じ」とあるが、`addPost` は引数を取る形に変わっている。そのまま写経すると追加できない |
-| 3 | `apps/api/package.json` | `typescript` と `@types/node` が `apps/api` の devDependencies に無い。ルートへの hoisting で偶然動いている |
-| 5 | `docs/05_deploy.md` | 表では 5章の `ci.yml` が E2E も実行することになっているが、E2E は 8章で追加する |
-| 7 | `apps/web/src/components/PostItem.tsx` | 一覧に公開状態が出ない。7.1 の完了条件（一覧にも公開中と表示される）を満たしていない |
-| 7 | `apps/web/src/pages/PostDetailPage.tsx` | 公開メモの URL をコピーする UI が無い。7.1 の「扱うこと」に書いてある |
-| 7 | `apps/web/src/pages/PostDetailPage.tsx` | 本文の改行が `<p>` で潰れる。`white-space: pre-wrap` |
-| 8 | `docs/08_e2e.md` | `getByLabelText` は Testing Library の API 名。Playwright は `getByLabel` |
-| 8 | `docs/08_e2e.md` | 掲載コードが未定義の `createPost()` を呼んでいる。ヘルパーも載せるか、抜粋だと明示する |
+| 章 | 場所 | 内容 | 対応 |
+|---|---|---|---|
+| 2 | `apps/web/index.html` | `lang="en"` のまま | `lang="ja"` に変更（2章のコミット） |
+| 2 | `apps/web/src/App.tsx` | `setPosts(...)` が値形式。記事 2.4 の「前の値を使うときは関数形式」と食い違う | コードを `setPosts((prev) => ...)` に統一し、記事 2.2 / 2.4 / 2.6 の掲載コードも直した |
+| 2 | `apps/web/README.md` | oxlint 前提のテンプレート README が残っている | 削除。2.10 の oxlint を外す手順に `rm` を追加し、生成ファイルの表にも行を足した |
+| 2 | `docs/02_frontend.md` 2.9 | 「CRUD 関数は 2.6 と同じ」だが `addPost` は引数を取る形に変わっている | 2.9 に `addPost` の最終形を掲載した |
+| 3 | `apps/api/package.json` | `typescript` と `@types/node` が無く、hoisting で偶然動いている | 両方を devDependencies に追加し、`package-lock.json` を再生成（3章のコミット） |
+| 5 | `docs/05_deploy.md` | 表では 5章の `ci.yml` が E2E も実行することになっている | 「E2E は8章で足します」に修正 |
+| 7 | `PostItem.tsx` | 一覧に公開状態が出ない（7.1 の完了条件） | 公開中 / 非公開のバッジを追加（7章のコミット） |
+| 7 | `PostDetailPage.tsx` | 公開メモの URL をコピーする UI が無い | 公開中のときだけ共有 URL とコピーボタンを表示 |
+| 7 | `PostDetailPage.tsx` | 本文の改行が `<p>` で潰れる | `.post-content { white-space: pre-wrap }` |
+| 8 | `docs/08_e2e.md` | `getByLabelText` は Testing Library の API 名 | `getByLabel` に修正し、間違えやすい点として明記 |
+| 8 | `docs/08_e2e.md` | 掲載コードが未定義の `createPost()` を呼ぶ | ヘルパーの定義も掲載した |
+
+対応後に `npm run lint` / `typecheck` / 単体テスト（web 5件・api 13件）/ E2E 6件がすべて通ることを確認しています。
 
 ## 要検証
 
