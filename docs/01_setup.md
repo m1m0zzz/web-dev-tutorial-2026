@@ -358,7 +358,7 @@ https://github.com/x-motemen/ghq#installation
 **扱うこと**
 
 - インストールと認証
-- `CLAUDE.md` によるプロジェクト固有の指示
+- `AGENTS.md`（`CLAUDE.md`）によるプロジェクト固有の指示
 - 権限設定
 
 WSL のターミナルで実行します（Windows 側ではなく、WSL の中に入れます）。
