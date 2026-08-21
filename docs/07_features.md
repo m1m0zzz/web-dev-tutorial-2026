@@ -106,7 +106,7 @@ CSR (Client Side Rendering) では、サーバーが返すのは空の HTML と 
 
 | 変わるもの | 影響 |
 |---|---|
-| ルーティングの書き方 | [2.10](02_frontend.md#210-react-router-でページを分ける) の内容が別物になる |
+| ルーティングの書き方 | [2.9](02_frontend.md#29-react-router-でページを分ける) の内容が別物になる |
 | データ取得の仕組み | `loader` / `action` が加わり、React Query との住み分けが必要（[6.4](06_api-integration.md#64-react-query-に載せる)） |
 | デプロイ構成 | フロント側もサーバーになる（[5.2](05_deploy.md#52-github-actions-を構築する)） |
 | CORS の前提 | 同一オリジンにできる可能性（[6.1](06_api-integration.md#61-cors)） |

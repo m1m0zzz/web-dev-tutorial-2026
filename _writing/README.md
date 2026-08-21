@@ -41,8 +41,8 @@ ba0398f  test: 4章 テストを書く                          <- chapter-04
 | ファイル | 入れる場所 | 理由 |
 |---|---|---|
 | `apps/**` | その章のコミット | 章のコードそのもの |
-| `.nvmrc`、`.gitignore` | 2章のコミット | 記事 2.1 で読者が作る |
-| `eslint.config.mjs`、`.prettierrc.json`、`.prettierignore` | 2章のコミット | 記事 2.11 で読者が作る |
+| `.nvmrc`、`.gitignore`、ルートの `package.json` | 2章のコミット | 記事 1.6 で読者が作る（1章にブランチは無いので2章に入れる） |
+| `eslint.config.mjs`、`.prettierrc.json`、`.prettierignore` | 2章のコミット | 記事 2.10 で読者が作る |
 | `.github/workflows/*.yml` | 5章のコミット | 記事 5.2 で読者が作る |
 | `playwright.config.ts`、`tests/e2e/**` | 8章のコミット | 記事 8章で読者が作る |
 | `package.json`、`package-lock.json` | 依存を追加した章のコミット | 記事の手順で `npm i` するタイミング |
@@ -50,11 +50,13 @@ ba0398f  test: 4章 テストを書く                          <- chapter-04
 
 `.gitignore` の `.mode` の行だけは例外で、**先端**に入れてあります。記事に出てこない、執筆者だけのファイルだからです。そのぶん章ブランチでは `.mode` が無視されません（下の `git add -A` の注意を参照）。
 
+**1章にはブランチがありません。** 1.6 でリポジトリの骨組み（`.nvmrc`、`.gitignore`、ルートの `package.json`）を作りますが、それだけのブランチを切っても始める価値がないので、2章のコミットに含めています。
+
 **章ブランチには、記事に出てくるファイルしか入っていません。** `CLAUDE.md` や `README.md` を直しても章ブランチは変わりませんし、変える必要もありません。
 
 ### 例: Node.js の LTS が上がったとき
 
-`.nvmrc` は記事 2.1 で作るファイルなので、**2章のコミットを直します**（ケース2）。3章以降は積み直されるだけで、個別の作業は要りません。記事側の記述（2.1 の LTS バージョンの説明）は、先端に別コミットで入れます。
+`.nvmrc` は記事 1.6 で作るファイルなので、**2章のコミットを直します**（ケース2）。3章以降は積み直されるだけで、個別の作業は要りません。記事側の記述（1.6 の LTS バージョンの説明）は、先端に別コミットで入れます。
 
 ### 例: 依存パッケージを更新するとき
 
@@ -156,7 +158,7 @@ git rebase -i --root main        # コードだけを直す（ケース2 の手�
 ./_writing/sync-chapters.sh --push
 
 vim docs/02_frontend.md          # 記事は普通のコミットで
-git commit -am "docs: 2.8 のコンポーネント分離を実装に合わせる"
+git commit -am "docs: 2.7 のコンポーネント分離を実装に合わせる"
 git push origin main
 ```
 
@@ -181,6 +183,13 @@ git push origin main
 
 `--push` は `main` と章ブランチ 7 本をまとめて force push します（`--force-with-lease`）。**章ブランチは共同作業用ではなく公開スナップショットなので、force push して構いません。** 読者は clone し直すか、`git fetch --all` で追随できます。
 
+## これからやること
+
+- [x] **2.1「リポジトリと workspace を作る」を1章に移す** → [1.6](../docs/01_setup.md#16-リポジトリと-workspace-を作る)。2章は 2.2 以降が1つずつ繰り上がった
+- [x] **Claude Code のセットアップ（9.1）を1章に移す** → [1.9](../docs/01_setup.md#19-任意-claude-code)
+- [x] **`ghcd`（`ghq` + `fzf`）を最後の章に書く** → [9.1](../docs/09_devtools.md#91-ghq--fzf-でリポジトリを移動する)。[1.8](../docs/01_setup.md#18-任意-ghq) の ghq の節から参照している
+- [ ] **各章のコードを codex でレビューする**
+
 ## 確認済みの事項
 
 以下は実機で動かして確認済みです（2026年8月時点）。バージョンが上がったら再確認してください。
@@ -189,8 +198,8 @@ git push origin main
 |---|---|
 | 全体 | 完成コードはこのリポジトリ。章ごとのブランチ（`chapter-02` 〜）を順次追加 |
 | 2 | Node.js の LTS は 24。`create-vite` 9系の生成物（Vite 8 / React 19 / TS 6、Lint は oxlint） |
-| [2.10](../docs/02_frontend.md#210-react-router-でページを分ける) | React Router v8。モードの呼称（Framework / Data / Declarative）は変わっていない |
-| [2.11](../docs/02_frontend.md#211-任意-eslint--prettier-のセットアップ) | ESLint 10 + typescript-eslint + Prettier 3。`eslint-config-prettier` は不要 |
+| [2.9](../docs/02_frontend.md#29-react-router-でページを分ける) | React Router v8。モードの呼称（Framework / Data / Declarative）は変わっていない |
+| [2.10](../docs/02_frontend.md#210-任意-eslint--prettier-のセットアップ) | ESLint 10 + typescript-eslint + Prettier 3。`eslint-config-prettier` は不要 |
 | [3.2](../docs/03_backend.md#32-npm-create-honolatest) | `create-hono` 0.19 系の生成物。`"private": true` は入っていない |
 | [3.5](../docs/03_backend.md#35-環境変数とシークレット) | `wrangler types` が `vars` をリテラル型、`.dev.vars` のキーを `string` として生成する |
 | [3.6](../docs/03_backend.md#36-drizzle--d1-で-posts-テーブルを作る) | Drizzle 0.45 / drizzle-kit 0.31。ローカル D1 は `.wrangler/state/v3/d1/miniflare-D1DatabaseObject/<hash>.sqlite` |
@@ -214,4 +223,4 @@ git push origin main
 
 その他:
 
-- [2.9](../docs/02_frontend.md#29-css-基礎): 図の作成（必要な図の一覧は本文に記載済み）
+- [2.8](../docs/02_frontend.md#28-css-基礎): 図の作成（必要な図の一覧は本文に記載済み）
