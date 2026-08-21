@@ -24,7 +24,7 @@ cat .mode 2>/dev/null || echo user
 - `apps/api` — バックエンド（Hono + Cloudflare Workers + D1 + Drizzle + Better Auth）
 - `tests/e2e` — E2E テスト（Playwright）
 
-ルートは npm workspaces のルートで、Lint / 整形の設定もここに集約されています。`main` は全章を終えた状態、`chapter-02` 〜 `chapter-08` は各章を終えた時点のスナップショットです。
+ルートは npm workspaces のルートで、Lint / 整形の設定もここに集約されています。`main` は全章を終えた状態、`chapter-01` 〜 `chapter-08` は各章を終えた時点のスナップショットです（`chapter-01` はリポジトリの骨組みだけ）。
 
 ```bash
 git checkout chapter-03   # 3章を終えた時点の状態から始める

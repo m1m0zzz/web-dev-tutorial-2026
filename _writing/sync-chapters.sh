@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# 執筆者向け: main の履歴から章ブランチ (chapter-02 … chapter-08) を付け直す。
+# 執筆者向け: main の履歴から章ブランチ (chapter-01 … chapter-08) を付け直す。
 #
 # この記事は「1章 = 1コミット」の直線的な履歴で、章ブランチはその途中を指しているだけ。
 # 前の章を直したあと（git rebase -i --root で該当コミットを修正したあと）に実行すると、
@@ -16,7 +16,7 @@ set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
 
-CHAPTERS=(2 3 4 5 6 7 8)
+CHAPTERS=(1 2 3 4 5 6 7 8)
 PUSH=false
 [ "${1:-}" = "--push" ] && PUSH=true
 
