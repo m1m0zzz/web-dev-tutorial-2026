@@ -48,8 +48,8 @@ npm run dev -w apps/web
 | `tsconfig.json` | 他の2つを参照するだけのファイル（Project References） |
 | `tsconfig.app.json` | アプリ本体（`src/`）向けの TypeScript 設定 |
 | `tsconfig.node.json` | `vite.config.ts` など、Node.js 側で動くファイル向けの設定 |
-| `.oxlintrc.json` | oxlint（Lint ツール）の設定。[2.10](#210-任意-eslint--prettier-のセットアップ) で扱います |
-| `README.md` | テンプレートの説明。oxlint 前提の内容なので、[2.10](#210-任意-eslint--prettier-のセットアップ) で消します |
+| `.oxlintrc.json` | oxlint（Lint ツール）の設定。[2.10](#210-任意-oxlint--oxfmt-のセットアップ) でルートに移します |
+| `README.md` | テンプレートの説明。`apps/web` を単体で扱う前提の内容なので、[2.10](#210-任意-oxlint--oxfmt-のセットアップ) で消します |
 
 `public/` と `src/assets/` の違いは、**バンドラを通るかどうか**です。`src/assets/` の画像は `import` して使い、ビルド時にハッシュ付きのファイル名に変換されます。`public/` のファイルはパスをそのまま書いて参照します。
 
@@ -650,141 +650,117 @@ const handleDelete = () => {
 }
 ```
 
-## 2.10 任意) ESLint / Prettier のセットアップ
+## 2.10 任意) oxlint / oxfmt のセットアップ
 
-ESLint はコードの問題を検出するツール、Prettier は整形するツールです。役割が異なるので併用します。整形に関するルールは Prettier に任せ、ESLint はバグの原因になりうる書き方の検出に集中させます。
+oxlint はコードの問題を検出するツール、oxfmt は整形するツールです。役割が異なるので併用します。整形に関することは oxfmt に任せ、oxlint はバグの原因になりうる書き方の検出に集中させます。どちらも [Oxc](https://oxc.rs/) という同じプロジェクトのツールです。
 
 **構成**
 
 設定は workspace のルートに1箇所だけ置き、`apps/web` と `apps/api`（[3章](03_backend.md)で作る）の両方を対象にします。フロントとバックでルールがずれる状態を避けるためです。
 
-**テンプレートが入れてくる Lint ツールを外す**
+**テンプレートが入れた oxlint をルートに移す**
 
-[2.1](#21-npm-create-vitelatest) の `create-vite` は、Lint ツールとして **oxlint**（Rust 製の高速な Lint ツール）の設定 `.oxlintrc.json` を生成します。この記事では ESLint + Prettier で進めるため、まず外します。
+[2.1](#21-npm-create-vitelatest) の `create-vite` は、Lint ツールとして oxlint を入れ、`apps/web/.oxlintrc.json` を置いていきます。**入っているのは `apps/web` の中だけ**なので、ルートに入れ直します。
 
 ```bash
 npm uninstall -w apps/web oxlint
-rm apps/web/.oxlintrc.json apps/web/README.md
+npm i -D oxlint oxfmt
+mv apps/web/.oxlintrc.json .oxlintrc.json
+rm apps/web/README.md
 ```
 
-`apps/web/package.json` の `"lint": "oxlint"` も削除してください。
+`apps/web/package.json` の `"lint": "oxlint"` も削除してください。ルートから両方の workspace をまとめて実行します。
 
-`apps/web/README.md` も一緒に消しています。テンプレートが置いていく説明文で、中身は oxlint の設定方法です。**残しておくと、この記事の構成と食い違ったものが手元に残ります。**
+`apps/web/README.md` も一緒に消しています。テンプレートが置いていく説明文で、`apps/web` を単体のプロジェクトとして扱う前提の内容です。**残しておくと、この記事の構成と食い違ったものが手元に残ります。**
 
-> oxlint や Biome（Lint と整形を1つにまとめたツール）は、ESLint + Prettier より高速で設定も少なく済みます。この記事が ESLint + Prettier を選ぶのは、情報量が圧倒的に多く、詰まったときに調べやすいためです。**この選択は好みの範囲で、後から乗り換えられます。**
+> ESLint と Prettier という組み合わせも広く使われています。情報量は今でもそちらのほうが多く、独自のルールを書く仕組みも揃っています。この記事が oxlint / oxfmt を選ぶのは、テンプレートが最初から oxlint を入れてくること、設定が JSON ファイル1つで済むこと、Lint と整形の設定が衝突しないことによります。**この選択は好みの範囲です。** ESLint の設定から乗り換えるときは `npx @oxlint/migrate` で `.oxlintrc.json` を生成できます。
 
-**インストール**
+**oxlint の設定**
 
-ルートで実行します。
-
-```bash
-npm i -D eslint @eslint/js typescript-eslint eslint-plugin-react-hooks eslint-plugin-react-refresh globals prettier
-```
-
-| パッケージ | 役割 |
-|---|---|
-| `eslint` / `@eslint/js` | ESLint 本体と、その推奨ルール |
-| `typescript-eslint` | TypeScript を ESLint で扱うための一式 |
-| `eslint-plugin-react-hooks` | フックのルール違反（条件分岐の中で `useState` を呼ぶなど）を検出する |
-| `eslint-plugin-react-refresh` | 開発時のホットリロードが壊れる書き方を検出する |
-| `globals` | `window` や `document` などのグローバル変数の一覧 |
-| `prettier` | 整形 |
-
-**設定ファイル**
-
-ルートに `eslint.config.mjs` を作ります。**拡張子が `.mjs` なのは、ルートの `package.json` に `"type": "module"` を書いていないためです。** `.js` にすると CommonJS として読まれ、`import` 文がエラーになります。
-
-```js
-import js from '@eslint/js'
-import globals from 'globals'
-import reactHooks from 'eslint-plugin-react-hooks'
-import reactRefresh from 'eslint-plugin-react-refresh'
-import tseslint from 'typescript-eslint'
-import { defineConfig, globalIgnores } from 'eslint/config'
-
-export default defineConfig([
-  globalIgnores(['**/dist', '**/.wrangler', '**/worker-configuration.d.ts']),
-
-  // フロント・バック共通のルール
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [js.configs.recommended, tseslint.configs.recommended],
-  },
-
-  // フロントエンド (apps/web) だけに適用するルール
-  {
-    files: ['apps/web/**/*.{ts,tsx}'],
-    extends: [
-      reactHooks.configs.flat['recommended-latest'],
-      reactRefresh.configs.vite,
-    ],
-    languageOptions: {
-      globals: globals.browser,
-    },
-  },
-])
-```
-
-React 向けのルールを `apps/web/**` に限定しているのは、`apps/api` に React が無いためです。**`globalIgnores` に入れている `worker-configuration.d.ts` は、[3.5](03_backend.md#35-環境変数とシークレット) で `wrangler` が自動生成するファイルです。** 生成物を Lint しても直しようがありません。
-
-Prettier の設定はルートの `.prettierrc.json` に書きます。
+ルートに移した `.oxlintrc.json` を書き換えます。
 
 ```json
 {
-  "semi": false,
-  "singleQuote": true
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "ignorePatterns": ["**/dist", "**/.wrangler", "**/worker-configuration.d.ts"],
+  "rules": {
+    "typescript/no-explicit-any": "error"
+  },
+  "overrides": [
+    {
+      "files": ["apps/web/**/*.{ts,tsx}"],
+      "plugins": ["react"],
+      "env": { "browser": true },
+      "rules": {
+        "react/rules-of-hooks": "error",
+        "react/exhaustive-deps": "error",
+        "react/only-export-components": ["warn", { "allowConstantExport": true }]
+      }
+    }
+  ]
 }
 ```
 
-`.prettierignore` も置きます。
+**oxlint はルールを「カテゴリ」で管理します。** 既定で有効なのは `correctness`（明らかに間違っている、または無意味な書き方）だけです。`suspicious`（間違いの可能性が高い）や `pedantic`（厳しめ。誤検出もある）を足すこともできますが、増やすほど「直すべきか無視すべきか」の判断を迫られる警告が増えます。まずは既定のままで十分です。
 
+`rules` に書いたのは、カテゴリに入っていないルールを個別に有効にする例です。`typescript/no-explicit-any` は `any` を禁止します。型を諦めた箇所が見えるようになります。
+
+`overrides` で React 向けのルールを `apps/web/**` に限定しているのは、`apps/api` に React が無いためです。**`plugins` に `react` を足しても、既定で有効なプラグイン（TypeScript など）が無効になることはありません。** 足し算です。
+
+| ルール | 何を防ぐか |
+|---|---|
+| `react/rules-of-hooks` | 条件分岐の中で `useState` を呼ぶなど、フックの呼び出し順が実行ごとに変わる書き方 |
+| `react/exhaustive-deps` | `useEffect` の依存配列の書き漏らし |
+| `react/only-export-components` | 開発時のホットリロードが壊れる書き方（同じファイルからコンポーネント以外も export する） |
+
+`env: { "browser": true }` は、`window` や `document` をグローバル変数として認識させる指定です。これが無いと「そんな変数は無い」と言われます。
+
+**`ignorePatterns` に入れている `worker-configuration.d.ts` は、[3.5](03_backend.md#35-環境変数とシークレット) で `wrangler` が自動生成するファイルです。** 生成物を Lint しても直しようがありません。
+
+**oxfmt の設定**
+
+ルートに `.oxfmtrc.json` を作ります。
+
+```json
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "semi": false,
+  "singleQuote": true,
+  "printWidth": 80,
+  "sortPackageJson": false,
+  "ignorePatterns": ["dist", ".wrangler", "package-lock.json"]
+}
 ```
-dist
-.wrangler
-package-lock.json
-```
+
+`semi`（行末のセミコロン）と `singleQuote`（文字列の引用符）は好みです。この記事のコードは、この2つの設定で整形したものに揃えてあります。`printWidth` は折り返す行の長さで、oxfmt の既定は 100 です。
+
+`sortPackageJson` を `false` にしているのは、**既定では `package.json` のキーを決まった順序に並び替えるためです。** npm が書いた内容が整形のたびに動くと、自分で足した行がどれなのか分かりにくくなります。
+
+**スクリプト**
 
 ルートの `package.json` にスクリプトを追加します。
 
 ```json
 {
   "scripts": {
-    "lint": "eslint .",
-    "format": "prettier . --write",
-    "format:check": "prettier . --check"
+    "lint": "oxlint",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check"
   }
 }
 ```
 
-`format:check` は書き換えずに確認だけを行います。[5.2](05_deploy.md#52-github-actions-を構築する) で CI から実行します。
-
-**`eslint-config-prettier` は必要か**
-
-「ESLint と Prettier の併用には `eslint-config-prettier`（衝突するルールを無効化する設定）が必要」と書かれた記事が多くありますが、**上記の構成では不要です。**
-
-理由は、有効にしているルールセット（`js.configs.recommended`、`typescript-eslint` の recommended、react-hooks、react-refresh）のどれもがフォーマット系のルールを含んでいないためです。ESLint 本体はフォーマット系ルールを非推奨としており、推奨セットからも外れています。衝突するルールが無ければ、無効化する設定も要りません。
-
-Prettier 公式も、`eslint-config-prettier` を「衝突するルールを有効にしている場合に使うもの」として案内しています。あわせて、**`eslint-plugin-prettier`（Prettier を ESLint のルールとして実行する方式）は推奨されていません。** エディタが整形の差分を赤波線で埋め尽くすうえ、Prettier を直接実行するより遅くなるためです。
-
-参考: https://prettier.io/docs/integrating-with-linters
-
-**実プロジェクトではどうなっているか**
-
-参考として `usagicollective/usagi-koyashi`（React + Hono + Cloudflare の実プロジェクト）の設定を見ると、構成はこの記事とほぼ同じで、`eslint-config-prettier` も使っていません。違いは、そこに以下が積み重なっている点です。
-
-- 特定のルールを一時的に `warn` に落とす記述（すぐに直せない指摘を、バージョン更新とは別に扱うため）
-- コミット前に自動で Lint と整形をかける仕組み（husky + lint-staged）
-- スペルチェック（cspell）、`.editorconfig`
-
-**実プロジェクトの設定をそのままコピーしないでください。** この種の記述はプロジェクト固有の事情で足されたもので、意味を説明できないルールを持ち込むと、警告が出たときに直すべきか無視すべきか判断できなくなります。
+どちらもパスを渡さなければカレントディレクトリ以下が対象です。`format:check` は書き換えずに確認だけを行います。[5.2](05_deploy.md#52-github-actions-を構築する) で CI から実行します。
 
 ルートで `npm run lint` と `npm run format` が実行でき、両方ともエラーなく終われば成功です。
 
 **つまずきポイント**
 
 > [!TIP]
-> - **導入した直後は、既存のコードに大量の警告が出ることがあります。** これは正常です。`npm run lint -- --fix` で自動修正できるものは直ります
+> - **導入した直後は、既存のコードに警告が出ることがあります。** これは正常です。`npm run lint -- --fix` で自動修正できるものは直ります
 > - `npm run format` は対象ファイルを**書き換えます**。実行前に変更をコミットしておくと、何が変わったかを `git diff` で確認できます
+> - **`.oxlintrc.json` を `apps/web` に残さないでください。** oxlint は下位ディレクトリの設定ファイルも自動で読むため、両方に置くとどちらが効いているのか分からなくなります
+> - **型情報が必要なルールは、既定では動きません。** 「Promise を await していない」のような、型を見ないと判断できない指摘には `oxlint-tsgolint` の追加インストールと `--type-aware` が必要です。この記事では使いません
 > - VS Code で保存時に自動整形させるには、`.vscode/settings.json` の設定と拡張機能のインストールが必要です
 
 ## 2.11 任意) React の仕組み / なぜ SPA なのか
