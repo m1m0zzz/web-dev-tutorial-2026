@@ -122,10 +122,10 @@ echo author > .mode
 参照が特に多いのは以下の経路です。
 
 - [1.4](../docs/01_setup.md#14-safe-chain) サプライチェーン攻撃 → [6.5](../docs/06_api-integration.md#65-認証情報の受け渡し) localStorage のリスク
-- [2.13](../docs/02_frontend.md#213-任意-csr--ssg--ssr--isr) CSR/SSG/SSR/ISR → [7.5](../docs/07_features.md#75-csr-の限界) CSR の限界
+- [2.12](../docs/02_frontend.md#212-任意-csr--ssg--ssr--isr) CSR/SSG/SSR/ISR → [7.5](../docs/07_features.md#75-csr-の限界) CSR の限界
 - [3.3](../docs/03_backend.md#33-最初のエンドポイント-health) メソッドチェーン → [6.3](../docs/06_api-integration.md#63-hono-rpc-で型安全に呼ぶ) Hono RPC
 - [3.7](../docs/03_backend.md#37-入力バリデーション) バリデーション → [6.3](../docs/06_api-integration.md#63-hono-rpc-で型安全に呼ぶ) Hono RPC
-- [2.1](../docs/02_frontend.md#21-リポジトリと-workspace-を作る) `.gitignore` → [3.5](../docs/03_backend.md#35-環境変数とシークレット) 環境変数
+- [1.6](../docs/01_setup.md#16-リポジトリと-workspace-を作る) `.gitignore` → [3.5](../docs/03_backend.md#35-環境変数とシークレット) 環境変数
 
 ## 章ブランチの運用
 

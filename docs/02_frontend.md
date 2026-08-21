@@ -4,125 +4,9 @@
 
 **この章の時点では「公開」という概念は登場しません。** 見せる相手がいないためです。公開機能は [7章](07_features.md)で追加します。
 
-## 2.1 リポジトリと workspace を作る
+作業は [1.6](01_setup.md#16-リポジトリと-workspace-を作る) で作ったリポジトリの中で行います。断りがない限り、コマンドはすべてリポジトリのルートで実行します。
 
-フロントエンドとバックエンドを1つのリポジトリで管理します。npm workspaces を使うことで、依存のインストールを一度で済ませ、[6章](06_api-integration.md)でフロントからバックエンドの型を参照できるようにします。
-
-GitHub の Web UI から新規リポジトリを作成します。
-
-https://github.com/new
-
-| 項目 | 設定 |
-|---|---|
-| Repository name | 任意（この記事では `memo-app` とします） |
-| Visibility | **Private** |
-| Add a README file | チェックする |
-| Add .gitignore | **Node** を選択 |
-| Choose a license | 設定しない |
-
-作成後、WSL のターミナルから任意のディレクトリでクローンします。
-
-```bash
-git clone https://github.com/<ユーザー名>/memo-app.git
-cd memo-app
-```
-
-`git log` に初回コミットが表示され、`ls -a` で `.gitignore` と `README.md` が確認できれば成功です。
-
-**つまずきポイント**
-
-> [!TIP]
-> - **クローン先は Linux 側（`~/` 配下）にしてください。** `/mnt/c/` 配下に置くとファイルアクセスが極端に遅くなります（[1.1](01_setup.md#11-wsl2-ubuntu) 参照）
-> - [1章](01_setup.md)で `gh auth login` を済ませていれば、HTTPS でのクローンとプッシュに認証情報の入力は不要です。求められる場合は `gh auth status` で認証状態を確認してください
-> - Visibility を Private にしていますが、これは後述する `package.json` の `"private": true` とは無関係の設定です。前者は「GitHub 上で他人から見えるか」、後者は「npm に公開できるか」の話です
-
-### `.nvmrc` を作る
-
-このプロジェクトで使う Node.js のバージョンを宣言します。[1.3](01_setup.md#13-nvm) で設定した自動切り替えが、このファイルを見て動作します。
-
-```bash
-echo "24" > .nvmrc
-```
-
-> 執筆時点（2026年8月）の Active LTS は **Node.js 24 (Krypton)** です。`nvm install --lts` で入るのもこのラインです。読者の環境では、その時点の LTS に読み替えて構いません。`nvm ls-remote --lts` で確認できます。
-
-メジャーバージョンのみを書いています。パッチバージョンまで固定すると、更新のたびに `nvm install` が走り、記事も古くなります。逆に `lts/*` と書くと LTS ラインが切り替わったときに読者ごとに異なるバージョンが入るため、再現性が下がります。
-
-一度ディレクトリを出て入り直すと（`cd .. && cd memo-app`）、`Now using node v24...` と表示されます。
-
-### `.gitignore` に追記する
-
-Node テンプレートには `node_modules/` や `.env` 系が既に含まれています。ここに、あとの章で生成されるものを追記します。使うのは[3章](03_backend.md)以降ですが、シークレットや生成物を誤ってコミットする窓を開けないよう、先に設定しておきます。
-
-```
-# Cloudflare
-.wrangler/
-.dev.vars
-.dev.vars.*
-*.sqlite
-*.sqlite-journal
-
-# Playwright
-test-results/
-playwright-report/
-```
-
-`.dev.vars` は Cloudflare Workers のローカル開発で環境変数とシークレットを書くファイルです（[3.5](03_backend.md#35-環境変数とシークレット) で扱います）。**API キーや認証用のシークレットが平文で入るため、絶対にコミットしてはいけません。**
-
-ローカルの D1（[3.6](03_backend.md#36-drizzle--d1-で-posts-テーブルを作る) で使うデータベース）の実体は、以下の場所に作られます。
-
-```
-apps/api/.wrangler/state/v3/d1/miniflare-D1DatabaseObject/<ハッシュ>.sqlite
-```
-
-`.wrangler/` を丸ごと無視しているので、この SQLite ファイルもコミット対象から外れます。`*.sqlite` の2行は保険です（`wrangler` の実行位置によっては別の場所に出ることがあるため）。
-
-`test-results/` と `playwright-report/` は、[8章](08_e2e.md)の E2E テストが吐く実行結果とレポートです。テストを走らせるたびに中身が変わるので、コミットする意味がありません。**先に書いておかないと、`git add -A` で一度混入してしまいます。** 一度追跡されたファイルは、あとから `.gitignore` に書いても無視されず、`git rm --cached` が必要になります。
-
-**つまずきポイント**
-
-> [!TIP]
-> - [3章](03_backend.md)で `npm create hono@latest` を実行すると、`apps/api/` 配下にも `.gitignore` が生成されます。内容が重複する場合はそちらを整理しますが、ルート側の記述は残してください。`wrangler` の実行ディレクトリによっては、ルート側に `.wrangler/` が作られることがあります
-
-### workspace を設定する
-
-ルートに `package.json` を作ります。
-
-```bash
-npm init -y
-```
-
-生成された内容を、以下のように書き換えます。
-
-```json
-{
-  "name": "memo-app",
-  "private": true,
-  "workspaces": ["apps/*"]
-}
-```
-
-**`"private": true` は必須です。** これが無いと `npm publish` を誤って実行でき、Private リポジトリのコードが npm に公開されてしまいます。また npm workspaces はルートパッケージが private であることを前提としています。
-
-`"workspaces": ["apps/*"]` により、`apps/` 配下の各ディレクトリが1つのパッケージとして扱われます。この記事では `apps/web`（2章）と `apps/api`（[3章](03_backend.md)）を作ります。
-
-`npm init -y` が生成した `"main"`、`"scripts"`、`"keywords"` などは、ルートでは使わないので削除して構いません。
-
-```bash
-mkdir -p apps
-```
-
-`npm ls --workspaces` がエラーを出さずに実行できれば成功です（この時点ではまだ何も表示されません）。
-
-### コミットする
-
-```bash
-git add .
-git commit -m "chore: setup npm workspaces"
-git push
-```
-
-## 2.2 `npm create vite@latest`
+## 2.1 `npm create vite@latest`
 
 Vite は開発サーバーとビルドツールです。React のプロジェクトを一から設定するには、TypeScript のコンパイル、JSX の変換、開発サーバー、本番ビルドなど多数の設定が必要ですが、Vite のテンプレートはこれらを揃えた状態で生成してくれます。
 
@@ -157,20 +41,20 @@ npm run dev -w apps/web
 | `index.html` | エントリポイント。`<div id="root">` に React が描画される |
 | `src/main.tsx` | React の起動処理。`index.html` の `#root` にアプリをマウントする |
 | `src/App.tsx` | 最初のコンポーネント。ここから書き換えていく |
-| `src/index.css` / `src/App.css` | スタイル。[2.9](#29-css-基礎) で書き換えます |
+| `src/index.css` / `src/App.css` | スタイル。[2.8](#28-css-基礎) で書き換えます |
 | `public/` | そのまま配信される静的ファイル（`favicon.svg` など） |
 | `src/assets/` | コードから `import` して使う画像。バンドラを通ります |
 | `vite.config.ts` | Vite の設定 |
 | `tsconfig.json` | 他の2つを参照するだけのファイル（Project References） |
 | `tsconfig.app.json` | アプリ本体（`src/`）向けの TypeScript 設定 |
 | `tsconfig.node.json` | `vite.config.ts` など、Node.js 側で動くファイル向けの設定 |
-| `.oxlintrc.json` | oxlint（Lint ツール）の設定。[2.11](#211-任意-eslint--prettier-のセットアップ) で扱います |
+| `.oxlintrc.json` | oxlint（Lint ツール）の設定。[2.10](#210-任意-eslint--prettier-のセットアップ) で扱います |
 
 `public/` と `src/assets/` の違いは、**バンドラを通るかどうか**です。`src/assets/` の画像は `import` して使い、ビルド時にハッシュ付きのファイル名に変換されます。`public/` のファイルはパスをそのまま書いて参照します。
 
 > 執筆時点では `create-vite` 9系が動き、Vite 8 / React 19 / TypeScript 6 の構成が生成されました。バージョンが上がっていても、上記のファイル構成は概ね変わりません。
 
-## 2.3 モダン JavaScript の前提知識
+## 2.2 モダン JavaScript の前提知識
 
 React のコードは、比較的新しい JavaScript の記法を前提に書かれています。この節は通読する必要はありません。各項目に「どこで使うか」を書いてあるので、実際に詰まったときに戻ってきてください。
 
@@ -178,14 +62,14 @@ React のコードは、比較的新しい JavaScript の記法を前提に書�
 
 | 項目 | 最初に出てくる場所 |
 |---|---|
-| `const` / `let` | [2.5](#25-カウンター) カウンター |
-| アロー関数 | [2.5](#25-カウンター) カウンター（イベントハンドラ） |
-| 分割代入（配列） | [2.5](#25-カウンター) カウンター（`useState` の戻り値） |
-| 分割代入（オブジェクト） | [2.8](#28-コンポーネント分離) コンポーネント分離（Props の受け取り） |
-| スプレッド構文 | [2.7](#27-編集可能なリスト-メモリスト) メモリスト（配列への追加、オブジェクトの更新） |
-| `import` / `export` | [2.8](#28-コンポーネント分離) コンポーネント分離 |
-| テンプレートリテラル | [2.6](#26-タイマー) タイマー（時間の表示） |
-| 配列メソッド（`map` / `filter`） | [2.7](#27-編集可能なリスト-メモリスト) メモリスト |
+| `const` / `let` | [2.4](#24-カウンター) カウンター |
+| アロー関数 | [2.4](#24-カウンター) カウンター（イベントハンドラ） |
+| 分割代入（配列） | [2.4](#24-カウンター) カウンター（`useState` の戻り値） |
+| 分割代入（オブジェクト） | [2.7](#27-コンポーネント分離) コンポーネント分離（Props の受け取り） |
+| スプレッド構文 | [2.6](#26-編集可能なリスト-メモリスト) メモリスト（配列への追加、オブジェクトの更新） |
+| `import` / `export` | [2.7](#27-コンポーネント分離) コンポーネント分離 |
+| テンプレートリテラル | [2.5](#25-タイマー) タイマー（時間の表示） |
+| 配列メソッド（`map` / `filter`） | [2.6](#26-編集可能なリスト-メモリスト) メモリスト |
 
 **扱わないもの**
 
@@ -199,40 +83,40 @@ https://developer.mozilla.org/ja/docs/Web/JavaScript/Guide
 **この先の章に実際に出てくる形**
 
 ```ts
-// const / let（2.5）— 再代入しない変数は const。この記事のコードはほぼ const だけで書けます
+// const / let（2.4）— 再代入しない変数は const。この記事のコードはほぼ const だけで書けます
 const [count, setCount] = useState(0)
 
-// アロー関数（2.5）— イベントハンドラとして渡す関数
+// アロー関数（2.4）— イベントハンドラとして渡す関数
 const increment = () => {
   setCount((prev) => prev + 1)
 }
 
-// 分割代入・配列（2.5）— useState は [値, 更新関数] の2要素の配列を返します
+// 分割代入・配列（2.4）— useState は [値, 更新関数] の2要素の配列を返します
 const [posts, setPosts] = useState<Post[]>([])
 
-// 分割代入・オブジェクト（2.8）— Props を受け取るときの形
+// 分割代入・オブジェクト（2.7）— Props を受け取るときの形
 export function PostList({ posts, onDelete }: Props) {
 
-// スプレッド構文（2.7）— 配列に追加する / オブジェクトの一部だけを差し替える
+// スプレッド構文（2.6）— 配列に追加する / オブジェクトの一部だけを差し替える
 setPosts([...posts, newPost])
 setPosts(posts.map((post) => (post.id === id ? { ...post, ...values } : post)))
 
-// import / export（2.8）
+// import / export（2.7）
 import { PostItem } from './PostItem'
 export function PostList(props: Props) {
 
-// テンプレートリテラル（2.6, 2.8）— `` で囲み、${} の中に式を書きます
+// テンプレートリテラル（2.5, 2.7）— `` で囲み、${} の中に式を書きます
 `経過時間: ${seconds} 秒`
 <Link to={`/posts/${post.id}`}>
 
-// 配列メソッド map / filter（2.7）
+// 配列メソッド map / filter（2.6）
 posts.map((post) => post.title)      // 各要素を変換した新しい配列
 posts.filter((post) => post.id !== id) // 条件に合う要素だけの新しい配列
 ```
 
-**`map` と `filter` は、元の配列を変更せず新しい配列を返します。** React で状態を更新するときに、この性質がそのまま効いてきます（[2.7](#27-編集可能なリスト-メモリスト) のつまずきポイント）。
+**`map` と `filter` は、元の配列を変更せず新しい配列を返します。** React で状態を更新するときに、この性質がそのまま効いてきます（[2.6](#26-編集可能なリスト-メモリスト) のつまずきポイント）。
 
-## 2.4 TypeScript と JSX の読み方
+## 2.3 TypeScript と JSX の読み方
 
 JSX は JavaScript の中に HTML のような記法を書ける拡張構文です。TypeScript は JavaScript に型を追加した言語です。React では両者を組み合わせて書きます。
 
@@ -242,13 +126,13 @@ JSX は JavaScript の中に HTML のような記法を書ける拡張構文で�
 
 | 項目 | 最初に出てくる場所 |
 |---|---|
-| JSX の基本（`{}` 埋め込み、`className`、単一ルート、自己閉じタグ） | [2.5](#25-カウンター) カウンター |
-| 型注釈の基本（`string` / `number` / `boolean`） | [2.5](#25-カウンター) カウンター |
-| `useState` のジェネリクスと型推論 | [2.5](#25-カウンター) カウンター |
-| `type` によるオブジェクト型の定義 | [2.7](#27-編集可能なリスト-メモリスト) メモリスト |
-| Props の型定義 | [2.8](#28-コンポーネント分離) コンポーネント分離 |
-| 配列の型（`Post[]`） | [2.7](#27-編集可能なリスト-メモリスト) メモリスト |
-| `key` とリスト描画 | [2.7](#27-編集可能なリスト-メモリスト) メモリスト |
+| JSX の基本（`{}` 埋め込み、`className`、単一ルート、自己閉じタグ） | [2.4](#24-カウンター) カウンター |
+| 型注釈の基本（`string` / `number` / `boolean`） | [2.4](#24-カウンター) カウンター |
+| `useState` のジェネリクスと型推論 | [2.4](#24-カウンター) カウンター |
+| `type` によるオブジェクト型の定義 | [2.6](#26-編集可能なリスト-メモリスト) メモリスト |
+| Props の型定義 | [2.7](#27-コンポーネント分離) コンポーネント分離 |
+| 配列の型（`Post[]`） | [2.6](#26-編集可能なリスト-メモリスト) メモリスト |
+| `key` とリスト描画 | [2.6](#26-編集可能なリスト-メモリスト) メモリスト |
 
 **扱わないもの**
 
@@ -269,18 +153,18 @@ https://www.typescriptlang.org/ja/docs/handbook/intro.html
 **この先の章に実際に出てくる形**
 
 ```tsx
-// JSX の {} 埋め込みと className（2.5, 2.9）
+// JSX の {} 埋め込みと className（2.4, 2.8）
 <p>現在の値: {count}</p>
 <li className="post-item">
 
-// 自己閉じタグ（2.7）— 子要素を持たない要素は /> で閉じます
+// 自己閉じタグ（2.6）— 子要素を持たない要素は /> で閉じます
 <textarea value={content} onChange={(e) => setContent(e.target.value)} />
 
-// useState のジェネリクスと型推論（2.5, 2.7）
+// useState のジェネリクスと型推論（2.4, 2.6）
 const [count, setCount] = useState(0)          // 初期値 0 から number と推論される
 const [posts, setPosts] = useState<Post[]>([]) // [] からは推論できないので <Post[]> で明示する
 
-// type によるオブジェクト型の定義（2.7）
+// type によるオブジェクト型の定義（2.6）
 type Post = {
   id: string
   title: string
@@ -289,22 +173,22 @@ type Post = {
   updatedAt: number
 }
 
-// Props の型定義（2.8）— 関数を受け取る Props も型で書けます
+// Props の型定義（2.7）— 関数を受け取る Props も型で書けます
 type Props = {
   posts: Post[]                    // 配列の型
   onDelete: (id: string) => void   // 「string を1つ受け取り、何も返さない関数」
 }
 
-// key とリスト描画（2.7）
+// key とリスト描画（2.6）
 {posts.map((post) => (
   <PostItem key={post.id} post={post} onDelete={onDelete} />
 ))}
 
-// import type（2.8）— 型だけを import するときの書き方。6.3 で重要になります
+// import type（2.7）— 型だけを import するときの書き方。6.3 で重要になります
 import type { Post } from '../types'
 ```
 
-## 2.5 カウンター
+## 2.4 カウンター
 
 React の中心的な概念である「状態 (state)」を理解します。ボタンを押すと数字が増える、という最小のアプリを作ります。
 
@@ -332,7 +216,7 @@ React の中心的な概念である「状態 (state)」を理解します。ボ
 rm -rf apps/web/src/assets apps/web/src/App.css
 ```
 
-`apps/web/src/index.css` は中身を空にしてください（[2.9](#29-css-基礎) で書きます）。そのうえで `apps/web/src/App.tsx` を全文置き換えます。
+`apps/web/src/index.css` は中身を空にしてください（[2.8](#28-css-基礎) で書きます）。そのうえで `apps/web/src/App.tsx` を全文置き換えます。
 
 ```tsx
 import { useState } from 'react'
@@ -365,7 +249,7 @@ export default App
 
 `increment` が `setCount(count + 1)` ではなく `setCount((prev) => prev + 1)` になっているのは、つまずきポイントの2つ目に備えた形です。**「今の状態を元に次の状態を決める」ときは、常にこの関数形式で書いておくと安全です。**
 
-## 2.6 タイマー
+## 2.5 タイマー
 
 「時間の経過」という、React の外側で起きる変化をどう扱うかを学びます。ここで `useEffect` と、後片付け (cleanup) の概念が出てきます。
 
@@ -387,7 +271,7 @@ export default App
 
 **コード**
 
-[2.5](#25-カウンター) の `App.tsx` を、以下のように書き換えます。
+[2.4](#24-カウンター) の `App.tsx` を、以下のように書き換えます。
 
 ```diff
 -import { useState } from 'react'
@@ -443,7 +327,7 @@ return (
 
 **クリーンアップ関数を消すと何が起きるか、一度試してください。** `return () => { clearInterval(id) }` の行を消してストップ・スタートを何度か押すと、解除されなかったインターバルが積み重なり、秒数が2倍、3倍の速さで進みます。
 
-## 2.7 編集可能なリスト (メモリスト)
+## 2.6 編集可能なリスト (メモリスト)
 
 配列の状態を扱います。追加・編集・削除という、この先ずっと出てくる操作の基本形です。ここからがアプリの本体になります。
 
@@ -556,9 +440,9 @@ const deletePost = (id: string) => {
 </ul>
 ```
 
-## 2.8 コンポーネント分離
+## 2.7 コンポーネント分離
 
-[2.7](#27-編集可能なリスト-メモリスト) の時点では、すべてが1つのファイルに入っています。これを役割ごとに分割し、React の「コンポーネント」という単位で考えられるようにします。
+[2.6](#26-編集可能なリスト-メモリスト) の時点では、すべてが1つのファイルに入っています。これを役割ごとに分割し、React の「コンポーネント」という単位で考えられるようにします。
 
 **扱うこと**
 
@@ -568,7 +452,7 @@ const deletePost = (id: string) => {
 - コールバックを Props として渡す（子から親への通知）
 - どこで分割すべきかの判断基準
 
-見た目と挙動は [2.7](#27-編集可能なリスト-メモリスト) と変わらないまま、`PostList`、`PostItem`、`PostForm` などに分割できていれば成功です。
+見た目と挙動は [2.6](#26-編集可能なリスト-メモリスト) と変わらないまま、`PostList`、`PostItem`、`PostForm` などに分割できていれば成功です。
 
 **つまずきポイント**
 
@@ -576,7 +460,7 @@ const deletePost = (id: string) => {
 > - 分割しすぎると、Props をバケツリレーする形になって逆に読みにくくなります。まず動くものを作ってから分割する順番を推奨します
 > - Props は読み取り専用です。子コンポーネントの中で書き換えても親には反映されません。親の状態を変えたい場合は、親から関数を渡します
 
-## 2.9 CSS 基礎
+## 2.8 CSS 基礎
 
 ここまで見た目には手を付けていません。CSS の基本的な考え方を押さえます。React に固有の話ではなく、Web 全般の話です。
 
@@ -644,7 +528,7 @@ const deletePost = (id: string) => {
 
 `box-sizing: border-box` を全要素に指定するのは定番の設定です。既定の `content-box` では `width: 100%` に `padding` と `border` が足された分だけ幅がはみ出します。
 
-## 2.10 React Router でページを分ける
+## 2.9 React Router でページを分ける
 
 ここまでは1画面のアプリでした。複数のページを持ち、URL で行き来できるようにします。
 
@@ -705,7 +589,7 @@ createRoot(document.getElementById('root')!).render(
 ```tsx
 function App() {
   const [posts, setPosts] = useState<Post[]>([])
-  // addPost / updatePost / deletePost は 2.7 と同じ
+  // addPost / updatePost / deletePost は 2.6 と同じ
 
   return (
     <Routes>
@@ -749,7 +633,7 @@ const handleDelete = () => {
 }
 ```
 
-## 2.11 任意) ESLint / Prettier のセットアップ
+## 2.10 任意) ESLint / Prettier のセットアップ
 
 ESLint はコードの問題を検出するツール、Prettier は整形するツールです。役割が異なるので併用します。整形に関するルールは Prettier に任せ、ESLint はバグの原因になりうる書き方の検出に集中させます。
 
@@ -759,7 +643,7 @@ ESLint はコードの問題を検出するツール、Prettier は整形する�
 
 **テンプレートが入れてくる Lint ツールを外す**
 
-[2.2](#22-npm-create-vitelatest) の `create-vite` は、Lint ツールとして **oxlint**（Rust 製の高速な Lint ツール）の設定 `.oxlintrc.json` を生成します。この記事では ESLint + Prettier で進めるため、まず外します。
+[2.1](#21-npm-create-vitelatest) の `create-vite` は、Lint ツールとして **oxlint**（Rust 製の高速な Lint ツール）の設定 `.oxlintrc.json` を生成します。この記事では ESLint + Prettier で進めるため、まず外します。
 
 ```bash
 npm uninstall -w apps/web oxlint
@@ -884,7 +768,7 @@ Prettier 公式も、`eslint-config-prettier` を「衝突するルールを有�
 > - `npm run format` は対象ファイルを**書き換えます**。実行前に変更をコミットしておくと、何が変わったかを `git diff` で確認できます
 > - VS Code で保存時に自動整形させるには、`.vscode/settings.json` の設定と拡張機能のインストールが必要です
 
-## 2.12 任意) React の仕組み / なぜ SPA なのか
+## 2.11 任意) React の仕組み / なぜ SPA なのか
 
 ここまで React を「そういうもの」として使ってきました。裏で何が起きているのかを補います。
 
@@ -895,7 +779,7 @@ Prettier 公式も、`eslint-config-prettier` を「衝突するルールを有�
 - SPA (Single Page Application) とは何か、従来のサーバーサイドレンダリングとの違い
 - SPA の利点と欠点
 
-## 2.13 任意) CSR / SSG / SSR / ISR
+## 2.12 任意) CSR / SSG / SSR / ISR
 
 このチュートリアルで作るのは CSR (Client Side Rendering) のアプリです。他にも選択肢があることを知っておきます。
 
