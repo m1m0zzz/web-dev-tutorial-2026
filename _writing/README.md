@@ -214,7 +214,7 @@ git rebase --continue
 - [x] **2.1「リポジトリと workspace を作る」を1章に移す** → [1.6](../docs/01_setup.md#16-リポジトリと-workspace-を作る)。2章は 2.2 以降が1つずつ繰り上がった
 - [x] **Claude Code のセットアップ（9.1）を1章に移す** → [1.9](../docs/01_setup.md#19-任意-claude-code)
 - [x] **`ghcd`（`ghq` + `fzf`）を最後の章に書く** → [9.1](../docs/09_devtools.md#91-ghq--fzf-でリポジトリを移動する)。[1.8](../docs/01_setup.md#18-任意-ghq) の ghq の節から参照している
-- [x] **各章のコードを codex でレビューする** → [`codex-review.md`](codex-review.md)。33件を「対応する / 要検証 / 対応しない」に分類済み。個別の対応はこれから
+- [x] **各章のコードを codex でレビューする** → [`codex-review.md`](codex-review.md)。33件を分類し、**「対応する」11件は対応済み**。「要検証」4件が残っている
 - [x] **`AGENTS.md` を正とし、`CLAUDE.md` はそのシンボリックリンクにする** → ルートと `_writing/` の両方
 - [x] **章ブランチに checkout しても `AGENTS.md` / `CLAUDE.md` が残るようにする** → 1章のコミットに入れた（ケース5）
 
