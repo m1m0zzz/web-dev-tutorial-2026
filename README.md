@@ -10,7 +10,7 @@
 
 | 章 | ブランチ |
 |---|---|
-| [1 環境構築](docs/01_setup.md) | — |
+| [1 環境構築](docs/01_setup.md) | [chapter-01](https://github.com/m1m0zzz/web-dev-tutorial-2026/tree/chapter-01) |
 | [2 React でフロントエンドを作る](docs/02_frontend.md) | [chapter-02](https://github.com/m1m0zzz/web-dev-tutorial-2026/tree/chapter-02) |
 | [3 Hono でバックエンドを作る](docs/03_backend.md) | [chapter-03](https://github.com/m1m0zzz/web-dev-tutorial-2026/tree/chapter-03) |
 | [4 テストを書く](docs/04_test.md) | [chapter-04](https://github.com/m1m0zzz/web-dev-tutorial-2026/tree/chapter-04) |
