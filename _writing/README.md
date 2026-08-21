@@ -238,6 +238,18 @@ git rebase --continue
 | [6.1](../docs/06_api-integration.md#61-cors) | CORS に加えて Better Auth の `trustedOrigins` が必要 |
 | 8 | Playwright 1.62。`webServer` は `globalSetup` より先に起動する |
 
+### safe-chain の48時間ルールで CI が落ちることがある
+
+`check` ジョブの `npm ci` が `403 blocked by safe-chain direct download minimum package age` で落ちることがあります。**lock に、公開から48時間経っていないバージョンが入っているときです。**
+
+2026-08-21 に実際に起きました（`vite@8.2.2` が 2026-08-20T04:14Z 公開）。厄介なのは、**`actions/setup-node` の npm キャッシュが効いている間は表面化しない**ことです。キャッシュのキーは `package-lock.json` のハッシュなので、lock を1行でも変えるとキャッシュミスになり、そこで初めてダウンロードが走って弾かれます。
+
+- 対処1: そのまま待つ。48時間を過ぎれば解消します
+- 対処2: lock を48時間以上前のバージョンに戻す（Renovate がすぐ上げ直すので一時しのぎ）
+- 対処3: CI の safe-chain に `--safe-chain-skip-minimum-package-age` を渡す。**記事 1.4 で教えている防御を CI で外すことになるので、推奨しません**
+
+`chapters` ジョブと `e2e` ジョブは safe-chain を入れていないため、この影響を受けません。**逆に言うと、そこには防御がありません**（codex のレビューでも指摘されています）。
+
 ## 未確認の事項
 
 **Cloudflare のアカウントが必要なため、まだ実機で確認できていません。**
