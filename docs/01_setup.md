@@ -1,6 +1,6 @@
 # 1 環境構築
 
-この章では、以降の章で使う開発環境を用意します。
+この章では、以降の章で使う開発環境を用意し、アプリのリポジトリを作ります。[1.7](#17-任意-ターミナル操作に慣れる) 以降は任意です。
 
 ## 1.1 WSL2 (Ubuntu)
 
@@ -192,7 +192,125 @@ gh auth login
 > - Ubuntu には `git` が入っていない場合があります。`git --version` で確認し、無ければ `sudo apt install git` を実行してください
 > - ブラウザ認証では WSL 内から Windows 側のブラウザが開きます。開かない場合は表示される URL を手動でコピーしてください
 
-## 1.6 任意) ターミナル操作に慣れる
+## 1.6 リポジトリと workspace を作る
+
+フロントエンドとバックエンドを1つのリポジトリで管理します。npm workspaces を使うことで、依存のインストールを一度で済ませ、[6章](06_api-integration.md)でフロントからバックエンドの型を参照できるようにします。
+
+GitHub の Web UI から新規リポジトリを作成します。
+
+https://github.com/new
+
+| 項目 | 設定 |
+|---|---|
+| Repository name | 任意（この記事では `memo-app` とします） |
+| Visibility | **Private** |
+| Add a README file | チェックする |
+| Add .gitignore | **Node** を選択 |
+| Choose a license | 設定しない |
+
+作成後、WSL のターミナルから任意のディレクトリでクローンします。
+
+```bash
+git clone https://github.com/<ユーザー名>/memo-app.git
+cd memo-app
+```
+
+`git log` に初回コミットが表示され、`ls -a` で `.gitignore` と `README.md` が確認できれば成功です。
+
+**つまずきポイント**
+
+> [!TIP]
+> - **クローン先は Linux 側（`~/` 配下）にしてください。** `/mnt/c/` 配下に置くとファイルアクセスが極端に遅くなります（[1.1](#11-wsl2-ubuntu) 参照）
+> - [1.5](#15-gh-github-cli) で `gh auth login` を済ませていれば、HTTPS でのクローンとプッシュに認証情報の入力は不要です。求められる場合は `gh auth status` で認証状態を確認してください
+> - Visibility を Private にしていますが、これは後述する `package.json` の `"private": true` とは無関係の設定です。前者は「GitHub 上で他人から見えるか」、後者は「npm に公開できるか」の話です
+
+### `.nvmrc` を作る
+
+このプロジェクトで使う Node.js のバージョンを宣言します。[1.3](#13-nvm) で設定した自動切り替えが、このファイルを見て動作します。
+
+```bash
+echo "24" > .nvmrc
+```
+
+> 執筆時点（2026年8月）の Active LTS は **Node.js 24 (Krypton)** です。`nvm install --lts` で入るのもこのラインです。読者の環境では、その時点の LTS に読み替えて構いません。`nvm ls-remote --lts` で確認できます。
+
+メジャーバージョンのみを書いています。パッチバージョンまで固定すると、更新のたびに `nvm install` が走り、記事も古くなります。逆に `lts/*` と書くと LTS ラインが切り替わったときに読者ごとに異なるバージョンが入るため、再現性が下がります。
+
+一度ディレクトリを出て入り直すと（`cd .. && cd memo-app`）、`Now using node v24...` と表示されます。
+
+### `.gitignore` に追記する
+
+Node テンプレートには `node_modules/` や `.env` 系が既に含まれています。ここに、あとの章で生成されるものを追記します。使うのは[3章](03_backend.md)以降ですが、シークレットや生成物を誤ってコミットする窓を開けないよう、先に設定しておきます。
+
+```
+# Cloudflare
+.wrangler/
+.dev.vars
+.dev.vars.*
+*.sqlite
+*.sqlite-journal
+
+# Playwright
+test-results/
+playwright-report/
+```
+
+`.dev.vars` は Cloudflare Workers のローカル開発で環境変数とシークレットを書くファイルです（[3.5](03_backend.md#35-環境変数とシークレット) で扱います）。**API キーや認証用のシークレットが平文で入るため、絶対にコミットしてはいけません。**
+
+ローカルの D1（[3.6](03_backend.md#36-drizzle--d1-で-posts-テーブルを作る) で使うデータベース）の実体は、以下の場所に作られます。
+
+```
+apps/api/.wrangler/state/v3/d1/miniflare-D1DatabaseObject/<ハッシュ>.sqlite
+```
+
+`.wrangler/` を丸ごと無視しているので、この SQLite ファイルもコミット対象から外れます。`*.sqlite` の2行は保険です（`wrangler` の実行位置によっては別の場所に出ることがあるため）。
+
+`test-results/` と `playwright-report/` は、[8章](08_e2e.md)の E2E テストが吐く実行結果とレポートです。テストを走らせるたびに中身が変わるので、コミットする意味がありません。**先に書いておかないと、`git add -A` で一度混入してしまいます。** 一度追跡されたファイルは、あとから `.gitignore` に書いても無視されず、`git rm --cached` が必要になります。
+
+**つまずきポイント**
+
+> [!TIP]
+> - [3章](03_backend.md)で `npm create hono@latest` を実行すると、`apps/api/` 配下にも `.gitignore` が生成されます。内容が重複する場合はそちらを整理しますが、ルート側の記述は残してください。`wrangler` の実行ディレクトリによっては、ルート側に `.wrangler/` が作られることがあります
+
+### workspace を設定する
+
+ルートに `package.json` を作ります。
+
+```bash
+npm init -y
+```
+
+生成された内容を、以下のように書き換えます。
+
+```json
+{
+  "name": "memo-app",
+  "private": true,
+  "workspaces": ["apps/*"]
+}
+```
+
+**`"private": true` は必須です。** これが無いと `npm publish` を誤って実行でき、Private リポジトリのコードが npm に公開されてしまいます。また npm workspaces はルートパッケージが private であることを前提としています。
+
+`"workspaces": ["apps/*"]` により、`apps/` 配下の各ディレクトリが1つのパッケージとして扱われます。この記事では `apps/web`（[2章](02_frontend.md)）と `apps/api`（[3章](03_backend.md)）を作ります。
+
+`npm init -y` が生成した `"main"`、`"scripts"`、`"keywords"` などは、ルートでは使わないので削除して構いません。
+
+```bash
+mkdir -p apps
+```
+
+`npm ls --workspaces` がエラーを出さずに実行できれば成功です（この時点ではまだ何も表示されません）。
+
+### コミットする
+
+```bash
+git add .
+git commit -m "chore: setup npm workspaces"
+git push
+```
+
+## 1.7 任意) ターミナル操作に慣れる
 
 以降の章はすべてターミナル上で進みます。以下のコマンドは説明なしで使うので、初めて見るものがあればこの時点で触っておいてください。
 
@@ -214,7 +332,7 @@ gh auth login
 > - ドットで始まるファイル（`.bashrc`、`.nvmrc`、`.env`）は `ls` では表示されません。`ls -a` を使ってください
 > - Tab キーでパスが補完されます。手で打つよりタイプミスが減ります
 
-## 1.7 任意) ghq
+## 1.8 任意) ghq
 
 リポジトリを `~/ghq/github.com/{ユーザー名}/{リポジトリ名}` という規則的なパスに配置してくれるツールです。リポジトリが増えてくると、どこにクローンしたか分からなくなる問題を解消できます。
 
@@ -226,6 +344,34 @@ https://github.com/x-motemen/ghq#installation
 
 > [!TIP]
 > - 導入は必須ではありません。この記事で作るのは1リポジトリだけなので、恩恵を感じるのは他のプロジェクトを扱い始めてからです
-> - `fzf` と組み合わせると `ghq list | fzf` でリポジトリを検索して移動できます。ただし本筋から外れるのでここでは扱いません
+> - `fzf` と組み合わせると、一覧から絞り込んでリポジトリに移動できます。[9.1](09_devtools.md#91-ghq--fzf-でリポジトリを移動する) で扱います
+
+## 1.9 任意) Claude Code
+
+ターミナル上で動くコーディングエージェントです。コードベースを読んだうえで、実装やリファクタリング、調査を任せられます。以降の章で、分からないことを聞く相手として使えます。
+
+**扱うこと**
+
+- インストールと認証
+- `CLAUDE.md` によるプロジェクト固有の指示
+- 権限設定
+
+WSL のターミナルで実行します（Windows 側ではなく、WSL の中に入れます）。
+
+```bash
+curl -fsSL https://claude.ai/install.sh | bash
+```
+
+`claude --version` がバージョンを表示し、`claude doctor` が設定の診断結果を表示すれば成功です。プロジェクトのディレクトリで `claude` を実行すると、対話セッションが始まります。
+
+**つまずきポイント**
+
+> [!TIP]
+> - **利用には Pro / Max / Team / Enterprise / Console のいずれかのアカウントが必要です。** 無料の Claude.ai プランには含まれません
+> - 初回は `claude` を実行するとブラウザでのログインを求められます
+> - npm でグローバルインストールする方法もありますが、**`sudo npm install -g` は使わないでください**（権限の問題が起きます）
+> - ネイティブインストーラで入れた場合、更新はバックグラウンドで自動的に行われます
+
+参考: https://code.claude.com/docs/en/setup
 
 ---
