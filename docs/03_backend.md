@@ -77,7 +77,7 @@ npm install
 **つまずきポイント**
 
 > [!TIP]
-> - **生成された `apps/api/package.json` には `"private": true` が入っていません。** [1.6](01_setup.md#16-リポジトリと-workspace-を作る) で説明した理由から、手で追加してください
+> - **生成された `apps/api/package.json` には `"private": true` が入っていません。** [1.8](01_setup.md#18-リポジトリと-workspace-を作る) で説明した理由から、手で追加してください
 > - 生成された `apps/api/.gitignore` は、ルートの `.gitignore` と内容が重複します。どちらかに寄せて構いませんが、**ルート側の記述は残してください**
 > - **`npm install` で `install-scripts` の警告が出ることがあります。** npm 12 以降は、インストール時に実行されるスクリプトを既定でブロックします（[1.4](01_setup.md#14-safe-chain) のサプライチェーン攻撃への対策の一種です）。`npm install-scripts ls` でブロックされたパッケージを確認できます。この記事の構成では、ブロックされたままでも `wrangler dev` もビルドも動きます
 
@@ -195,7 +195,7 @@ interface __BaseEnv_CloudflareBindings {
 **つまずきポイント**
 
 > [!TIP]
-> - **`.dev.vars` は絶対にコミットしないでください。** [1.6](01_setup.md#16-リポジトリと-workspace-を作る) で `.gitignore` に追加済みですが、`git status` で確認する習慣を付けてください
+> - **`.dev.vars` は絶対にコミットしないでください。** [1.8](01_setup.md#18-リポジトリと-workspace-を作る) で `.gitignore` に追加済みですが、`git status` で確認する習慣を付けてください
 > - **Cloudflare Workers では `process.env` が使えません。** Node.js の常識が通用しない箇所です
 > - **`wrangler.jsonc` を変更したら `cf-typegen` を実行し直してください。** [3.6](#36-drizzle--d1-で-posts-テーブルを作る) で D1 のバインディングを足したときに `c.env.DB` が型エラーになりますが、原因はこれです
 > - 生成された `worker-configuration.d.ts` はコミットして構いません。ただし手で編集しても次の生成で消えます

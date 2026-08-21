@@ -43,7 +43,7 @@ ba0398f  test: 4章 テストを書く                          <- chapter-04
 | ファイル | 入れる場所 | 理由 |
 |---|---|---|
 | `apps/**` | その章のコミット | 章のコードそのもの |
-| `.nvmrc`、`.gitignore`、ルートの `package.json` | 1章のコミット | 記事 1.6 で読者が作る |
+| `.nvmrc`、`.gitignore`、ルートの `package.json` | 1章のコミット | 記事 1.8 で読者が作る |
 | `eslint.config.mjs`、`.prettierrc.json`、`.prettierignore` | 2章のコミット | 記事 2.10 で読者が作る |
 | `.github/workflows/*.yml` | 5章のコミット | 記事 5.2 で読者が作る |
 | `playwright.config.ts`、`tests/e2e/**` | 8章のコミット | 記事 8章で読者が作る |
@@ -53,13 +53,13 @@ ba0398f  test: 4章 テストを書く                          <- chapter-04
 
 `.gitignore` の `.mode` の行だけは例外で、**先端**に入れてあります。記事に出てこない、執筆者だけのファイルだからです。そのぶん章ブランチでは `.mode` が無視されません（下の `git add -A` の注意を参照）。
 
-**`chapter-01` はリポジトリの骨組みだけです。** 1.6 で作る `.nvmrc`、`.gitignore`、ルートの `package.json` の3つで、依存はまだ入れないので `package-lock.json` もありません。CI もこのブランチだけは `npm ci` を打たず、`npm pkg get workspaces` が通ることだけを見ています。
+**`chapter-01` はリポジトリの骨組みだけです。** 1.8 で作る `.nvmrc`、`.gitignore`、ルートの `package.json` の3つで、依存はまだ入れないので `package-lock.json` もありません。CI もこのブランチだけは `npm ci` を打たず、`npm pkg get workspaces` が通ることだけを見ています。
 
 **章ブランチに入っているのは、記事に出てくるファイルと `AGENTS.md` / `CLAUDE.md` だけです。** `README.md` や `docs/**` を直しても章ブランチは変わりませんし、変える必要もありません。
 
 ### 例: Node.js の LTS が上がったとき
 
-`.nvmrc` は記事 1.6 で作るファイルなので、**1章のコミットを直します**（ケース2）。3章以降は積み直されるだけで、個別の作業は要りません。記事側の記述（1.6 の LTS バージョンの説明）は、先端に別コミットで入れます。
+`.nvmrc` は記事 1.8 で作るファイルなので、**1章のコミットを直します**（ケース2）。3章以降は積み直されるだけで、個別の作業は要りません。記事側の記述（1.8 の LTS バージョンの説明）は、先端に別コミットで入れます。
 
 ### 例: 依存パッケージを更新するとき
 
@@ -211,9 +211,9 @@ git rebase --continue
 
 ## これからやること
 
-- [x] **2.1「リポジトリと workspace を作る」を1章に移す** → [1.6](../docs/01_setup.md#16-リポジトリと-workspace-を作る)。2章は 2.2 以降が1つずつ繰り上がった
+- [x] **2.1「リポジトリと workspace を作る」を1章に移す** → [1.8](../docs/01_setup.md#18-リポジトリと-workspace-を作る)。2章は 2.2 以降が1つずつ繰り上がった
 - [x] **Claude Code のセットアップ（9.1）を1章に移す** → [1.9](../docs/01_setup.md#19-任意-claude-code)
-- [x] **`ghcd`（`ghq` + `fzf`）を最後の章に書く** → [9.1](../docs/09_devtools.md#91-ghq--fzf-でリポジトリを移動する)。[1.8](../docs/01_setup.md#18-任意-ghq) の ghq の節から参照している
+- [x] **`ghcd`（`ghq` + `fzf`）を最後の章に書く** → [9.1](../docs/09_devtools.md#91-ghq--fzf-でリポジトリを移動する)。[1.7](../docs/01_setup.md#17-任意-ghq) の ghq の節から参照している
 - [x] **各章のコードを codex でレビューする** → [`codex-review.md`](codex-review.md)。33件を分類し、**「対応する」11件と「要検証」4件は対応済み**（うち1件は指摘のほうが誤りだった）。残りは「対応しない」に分類したもの
 - [x] **`AGENTS.md` を正とし、`CLAUDE.md` はそのシンボリックリンクにする** → ルートと `_writing/` の両方
 - [x] **章ブランチに checkout しても `AGENTS.md` / `CLAUDE.md` が残るようにする** → 1章のコミットに入れた（ケース5）
