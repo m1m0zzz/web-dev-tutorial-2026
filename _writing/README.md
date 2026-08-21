@@ -22,6 +22,7 @@ echo author > .mode
 `main` は **「1章 = 1コミット」の直線的な履歴**です。章ブランチはその途中を指しているだけで、独自のコミットは持ちません。
 
 ```
+c0ffee0  chore: 1章 リポジトリと workspace を用意する    <- chapter-01
 41189ab  feat(web): 2章 React でフロントエンドを作る    <- chapter-02
 7591c42  feat(api): 3章 Hono でバックエンドを作る        <- chapter-03
 ba0398f  test: 4章 テストを書く                          <- chapter-04
@@ -41,7 +42,7 @@ ba0398f  test: 4章 テストを書く                          <- chapter-04
 | ファイル | 入れる場所 | 理由 |
 |---|---|---|
 | `apps/**` | その章のコミット | 章のコードそのもの |
-| `.nvmrc`、`.gitignore`、ルートの `package.json` | 2章のコミット | 記事 1.6 で読者が作る（1章にブランチは無いので2章に入れる） |
+| `.nvmrc`、`.gitignore`、ルートの `package.json` | 1章のコミット | 記事 1.6 で読者が作る |
 | `eslint.config.mjs`、`.prettierrc.json`、`.prettierignore` | 2章のコミット | 記事 2.10 で読者が作る |
 | `.github/workflows/*.yml` | 5章のコミット | 記事 5.2 で読者が作る |
 | `playwright.config.ts`、`tests/e2e/**` | 8章のコミット | 記事 8章で読者が作る |
@@ -50,13 +51,13 @@ ba0398f  test: 4章 テストを書く                          <- chapter-04
 
 `.gitignore` の `.mode` の行だけは例外で、**先端**に入れてあります。記事に出てこない、執筆者だけのファイルだからです。そのぶん章ブランチでは `.mode` が無視されません（下の `git add -A` の注意を参照）。
 
-**1章にはブランチがありません。** 1.6 でリポジトリの骨組み（`.nvmrc`、`.gitignore`、ルートの `package.json`）を作りますが、それだけのブランチを切っても始める価値がないので、2章のコミットに含めています。
+**`chapter-01` はリポジトリの骨組みだけです。** 1.6 で作る `.nvmrc`、`.gitignore`、ルートの `package.json` の3つで、依存はまだ入れないので `package-lock.json` もありません。CI もこのブランチだけは `npm ci` を打たず、`npm pkg get workspaces` が通ることだけを見ています。
 
 **章ブランチには、記事に出てくるファイルしか入っていません。** `CLAUDE.md` や `README.md` を直しても章ブランチは変わりませんし、変える必要もありません。
 
 ### 例: Node.js の LTS が上がったとき
 
-`.nvmrc` は記事 1.6 で作るファイルなので、**2章のコミットを直します**（ケース2）。3章以降は積み直されるだけで、個別の作業は要りません。記事側の記述（1.6 の LTS バージョンの説明）は、先端に別コミットで入れます。
+`.nvmrc` は記事 1.6 で作るファイルなので、**1章のコミットを直します**（ケース2）。3章以降は積み直されるだけで、個別の作業は要りません。記事側の記述（1.6 の LTS バージョンの説明）は、先端に別コミットで入れます。
 
 ### 例: 依存パッケージを更新するとき
 
@@ -147,7 +148,7 @@ gh workflow run ci.yml
 gh run watch
 ```
 
-`chapters` ジョブが `chapter-02` 〜 `chapter-08` をそれぞれ checkout して、`npm ci` / lint / 型チェック / テスト / ビルドを回します。**上流の章を直した結果、後の章が壊れていないかはここで分かります。**
+`chapters` ジョブが `chapter-02` 〜 `chapter-08` をそれぞれ checkout して、`npm ci` / lint / 型チェック / テスト / ビルドを回します（`chapter-01` は依存が無いので別ジョブです）。**上流の章を直した結果、後の章が壊れていないかはここで分かります。**
 
 ## ケース3: 記事とコードを同時に直す
 
@@ -196,7 +197,7 @@ git push origin main
 
 | 章 | 確認したこと |
 |---|---|
-| 全体 | 完成コードはこのリポジトリ。章ごとのブランチ（`chapter-02` 〜）を順次追加 |
+| 全体 | 完成コードはこのリポジトリ。章ごとのブランチ（`chapter-01` 〜）を順次追加 |
 | 2 | Node.js の LTS は 24。`create-vite` 9系の生成物（Vite 8 / React 19 / TS 6、Lint は oxlint） |
 | [2.9](../docs/02_frontend.md#29-react-router-でページを分ける) | React Router v8。モードの呼称（Framework / Data / Declarative）は変わっていない |
 | [2.10](../docs/02_frontend.md#210-任意-eslint--prettier-のセットアップ) | ESLint 10 + typescript-eslint + Prettier 3。`eslint-config-prettier` は不要 |
