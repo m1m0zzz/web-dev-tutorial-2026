@@ -300,7 +300,12 @@ npm init -y
 mkdir -p apps
 ```
 
-`npm ls --workspaces` がエラーを出さずに実行できれば成功です（この時点ではまだ何も表示されません）。
+`npm pkg get workspaces` を実行して `[ 'apps/*' ]` と表示されれば成功です。
+
+**つまずきポイント**
+
+> [!TIP]
+> - **`npm ls --workspaces` はこの時点では `No workspaces found!` で失敗します。** `apps/` の下にまだパッケージが1つも無いためです。異常ではありません。[2.1](02_frontend.md#21-npm-create-vitelatest) で `apps/web` を作ると通るようになります
 
 ### コミットする
 
@@ -375,3 +380,5 @@ curl -fsSL https://claude.ai/install.sh | bash
 参考: https://code.claude.com/docs/en/setup
 
 ---
+
+**この章のコード**: `chapter-01` ブランチ
