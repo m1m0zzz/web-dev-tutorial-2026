@@ -152,3 +152,6 @@ vite.config.ts.timestamp-*
 # Playwright
 test-results/
 playwright-report/
+
+# 執筆者向け（記事には出てきません）
+.mode
