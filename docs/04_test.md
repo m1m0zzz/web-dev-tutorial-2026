@@ -207,12 +207,13 @@ export default defineConfig({
 `apps/api/test/apply-migrations.ts`:
 
 ```ts
-import { applyD1Migrations, env } from 'cloudflare:test'
+import { applyD1Migrations } from 'cloudflare:test'
+import { env } from 'cloudflare:workers'
 
 await applyD1Migrations(env.DB, env.TEST_MIGRATIONS)
 ```
 
-`apps/api/test/env.d.ts` で、テスト側から見える環境の型を宣言します。`cloudflare:test` の `env` は `Cloudflare.Env` 型なので、そこに足す形になります。
+`apps/api/test/env.d.ts` で、テスト側から見える環境の型を宣言します。`env` は `Cloudflare.Env` 型なので、そこに足す形になります。
 
 ```ts
 import type { D1Migration } from '@cloudflare/vitest-pool-workers'
@@ -239,14 +240,14 @@ declare global {
 
 `"node"` は 3.6 で足したものです。**`types` は「これだけを読み込む」という指定なので、追記する形にしてください。** 上書きすると `drizzle-studio.config.ts` が型エラーになります。
 
-**これを忘れると、テストは動くのに `tsc --noEmit` だけが `Module 'cloudflare:test' has no exported member 'SELF'` で落ちます。**
+**これを忘れると、テストは動くのに `tsc --noEmit` だけが `Cannot find module 'cloudflare:test' or its corresponding type declarations.` で落ちます。**
 
 **テストを書く**
 
-`SELF.fetch()` で、実際に Worker にリクエストを送れます。
+`exports.default.fetch()` で、実際に Worker にリクエストを送れます。`exports` は `src/index.ts` の `export default` を指すループバックで、テストと同じコンテキストで動きます。
 
 ```ts
-import { SELF, env } from 'cloudflare:test'
+import { env, exports } from 'cloudflare:workers'
 import { beforeEach, describe, expect, it } from 'vitest'
 
 // Better Auth は baseURL と一致しないオリジンからのリクエストを拒否する（422）ため、
@@ -273,7 +274,7 @@ beforeEach(async () => {
 
 ```ts
 const signUp = async (userId: string) => {
-  const res = await SELF.fetch(`${BASE}/auth/sign-up/email`, {
+  const res = await exports.default.fetch(`${BASE}/auth/sign-up/email`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -294,7 +295,7 @@ const signUp = async (userId: string) => {
 it('他人の非公開メモは 404（403 ではない）', async () => {
   const post = await createPost(alice, false)
 
-  const res = await SELF.fetch(`${BASE}/posts/${post.id}`, {
+  const res = await exports.default.fetch(`${BASE}/posts/${post.id}`, {
     headers: { Authorization: `Bearer ${bob.token}` },
   })
   expect(res.status).toBe(404)
@@ -303,7 +304,7 @@ it('他人の非公開メモは 404（403 ではない）', async () => {
 it('レスポンスにメールアドレスが含まれない', async () => {
   await createPost(alice, true)
 
-  const res = await SELF.fetch(`${BASE}/public/posts`)
+  const res = await exports.default.fetch(`${BASE}/public/posts`)
   expect(await res.text()).not.toContain('@example.com')
 })
 ```
@@ -315,7 +316,8 @@ it('レスポンスにメールアドレスが含まれない', async () => {
 **追加のつまずきポイント**
 
 > [!TIP]
-> - **テスト間でストレージは自動ではリセットされません。** 上記のように明示的に消してください。消し忘れると、2つ目以降のテストでサインアップが `USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL`（422）になります
+> - **テスト間でストレージは自動ではリセットされません。** 上記のように明示的に消してください。消し忘れると、2つ目以降のテストでサインアップが `USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL`（422）になります（`@cloudflare/vitest-pool-workers` 0.22 で確認。`beforeEach` を外すと12件中11件が落ちました）
+> - **`cloudflare:test` の `SELF` と `env` は非推奨です。** 0.22 の型定義に `@deprecated` が付いており、それぞれ `cloudflare:workers` の `exports.default` と `env` に置き換わりました。古い記事やサンプルは `SELF` のままなので、読み替えてください。`applyD1Migrations` は引き続き `cloudflare:test` から import します
 > - **リクエストのオリジンは `BETTER_AUTH_URL` と揃えてください。** `https://example.com` のような別オリジンから叩くと、Better Auth が 422 を返します
 
 ---

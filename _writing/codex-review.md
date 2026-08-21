@@ -29,16 +29,34 @@ codex exec --sandbox read-only "コミット <sha>（N章）が導入したコ�
 
 対応後に `npm run lint` / `typecheck` / 単体テスト（web 5件・api 13件）/ E2E 6件がすべて通ることを確認しています。
 
-## 要検証
+## 検証した4件
 
-実際に動かして確かめてから判断します。
+実際に動かして確かめた結果です。
 
-| 章 | 内容 | 備考 |
-|---|---|---|
-| 4 | 「テスト間でストレージは自動ではリセットされない」という記事の記述は誤りで、`vitest-pool-workers` は既定でテストごとに分離する、という指摘 | **記事の記述は実測に基づいています**（消し忘れると2つ目以降のサインアップが `USER_ALREADY_EXISTS` になった）。分離されるのは KV/R2 などで D1 は別、という可能性がある |
-| 4 | `cloudflare:test` の `SELF` / `env` は 0.22 で非推奨。`cloudflare:workers` の `env` と `exports.default.fetch()` を使う | 事実なら記事ごと直す。型定義と CHANGELOG で確認する |
-| 6 | `queryClient.clear()` ではログアウト後に `useSession()` が更新されず、画面が残る | 手元で再現するか確認する |
-| 8 | `playwright.config.ts` の D1 リセットは webServer 起動時のみ。既存サーバーを再利用するローカル実行では走らない | 記事の「テストごとにリセット」という書き方を直す必要があるかもしれない |
+### 1. 「テスト間でストレージは自動リセットされる」→ **指摘が誤り**
+
+記事の「自動ではリセットされません」が正しいことを確認しました。`beforeEach` の `DELETE` を外して `apps/api` のテストを走らせると、**12件中11件が 422（`USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL`）で落ちます**。`@cloudflare/vitest-pool-workers` 0.22 のプールオプションにも `isolatedStorage` は存在しません。記事にこの根拠を書き足しました。
+
+### 2. `cloudflare:test` の `SELF` / `env` は非推奨 → **指摘が正しい**
+
+インストール済みの型定義（`types/cloudflare-test.d.ts`）に `@deprecated` が付いていました。
+
+```
+@deprecated Instead, use `import { env } from "cloudflare:workers"`
+@deprecated Instead, use `import { exports } from "cloudflare:workers"` and `exports.default.fetch()`
+```
+
+3つのテストファイルを移行し、13件すべて通ることを確認しました。`applyD1Migrations` は引き続き `cloudflare:test` からです。記事 4.2 のコードと説明も直し、`tsc --noEmit` が出すエラーメッセージ（`Cannot find module 'cloudflare:test'…`）も実際のものに更新しています。
+
+### 3. `queryClient.clear()` でログアウトが画面に反映されない → **指摘が正しい**
+
+E2E で再現しました。**ログアウトを押しても、`/` に留まったままログイン画面に戻りません。** `clear()` は購読先の query ごと消すだけで、`useSession()` に変更が伝わらないためです。
+
+`setQueryData(sessionKey, null)` でセッションを明示的に書き換え、自分のメモのキャッシュだけを `removeQueries` で消す形に変更。**回帰テストを E2E のシナリオ7として追加しました**（記事の一覧も 6 → 7 に更新）。
+
+### 4. E2E の D1 リセットが毎回走るわけではない → **指摘が正しい**
+
+`reuseExistingServer: !process.env.CI` のため、ローカルで開発サーバーを起動したまま `npm run test:e2e` を叩くと、**`webServer.command` 自体が実行されません**（＝リセットも走らない）。記事に但し書きを追加し、テストがユーザーごとに違う名前を使っている理由もそこで説明しました。CI では毎回新規起動なので影響しません。
 
 ## 対応しない（このチュートリアルの範囲外）
 
