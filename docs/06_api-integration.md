@@ -258,6 +258,13 @@ const queryClient = new QueryClient({
 
 > [!TIP]
 > - **`hc` の `headers` は関数で渡してください。** オブジェクトで渡すと、クライアントを生成した時点の値で固定され、ログイン直後にトークンが反映されません
+> - **ログアウトで `queryClient.clear()` だけを呼ぶと、画面が切り替わりません。** トークンは消えるのに、表示中のページはログイン済みのままになります。`clear()` は購読先の query ごと消すだけで、**購読している `useSession()` に「変わった」ことが伝わらない**ためです。セッションを明示的に書き換えてから、残したくないキャッシュを消してください
+>
+>   ```ts
+>   clearToken()
+>   queryClient.setQueryData(sessionKey, null) // ここで再描画が起きる
+>   queryClient.removeQueries({ queryKey: postsKey })
+>   ```
 > - **エラーレスポンスの本文は、空のことがあります。** `await res.json()` を無条件に呼ぶと、画面に出るのが `Unexpected end of JSON input` という無関係なエラーになり、本当の原因（サーバーが 500 を返していること）が見えなくなります。`await res.text()` で受けて、空ならステータスコードを表示してください
 >
 >   ```ts
