@@ -129,7 +129,7 @@ echo author > .mode
 
 ## 章ブランチの運用
 
-`main` は「1章 = 1コミット」の直線的な履歴で、`chapter-02` 〜 `chapter-08` はその途中を指しているだけです。**章ブランチを直接編集しないでください。** `main` の履歴を直してから付け直します。
+`main` は「1章 = 1コミット」の直線的な履歴で、`chapter-01` 〜 `chapter-08` はその途中を指しているだけです。**章ブランチを直接編集しないでください。** `main` の履歴を直してから付け直します。
 
 ```bash
 git rebase -i --root main        # 該当章のコミットを edit → 修正 → git rebase --continue

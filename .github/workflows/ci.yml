@@ -76,6 +76,22 @@ jobs:
 
   # main への push のときだけ、どちら側が変わったかを調べる
 
+  chapter-01:
+    name: 章ブランチ (chapter-01)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: chapter-01
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+
+      # この時点では依存も apps/ 配下のパッケージも無いので、
+      # ルートの package.json が読めることだけを確認する
+      - run: npm pkg get workspaces
+
   chapters:
     name: 章ブランチ (${{ matrix.branch }})
     runs-on: ubuntu-latest
