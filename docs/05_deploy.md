@@ -106,7 +106,7 @@ npm i -D -w apps/web wrangler
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
         env:
-          CI: "true"
+          CI: 'true'
 ```
 
 Lint とテストが `ci.yml` とデプロイ側で二重に走ることになりますが、**「検査を通っていないものはデプロイされない」ほうが重要です。** 同じジョブの中のステップとして並んでいるので、途中で失敗すればそこで止まり、デプロイのステップには到達しません。
