@@ -4,11 +4,7 @@
 
 ## 1.1 WSL2 (Ubuntu)
 
-**何のために**
-
 Node.js のツールチェーンは Linux 環境を前提に作られているものが多く、Windows ネイティブで動かすとパスの区切り文字や改行コード、シンボリックリンクの扱いで問題が出ます。Linux 環境を Windows 上に用意することで、これらを回避します。
-
-**手順**
 
 https://learn.microsoft.com/ja-jp/windows/wsl/install
 
@@ -19,17 +15,16 @@ sudo apt update && sudo apt upgrade
 sudo apt install -y build-essential
 ```
 
-**完了条件**
-
-上記コマンドがエラーなく完了する。PowerShell で `wsl -l -v` を実行し、Ubuntu が `VERSION 2` で表示される。Ubuntu 内で `whoami` が自分で設定したユーザー名を返す。
+コマンドがエラーなく終わり、PowerShell で `wsl -l -v` を実行して Ubuntu が `VERSION 2` と表示されれば成功です。Ubuntu 内の `whoami` が、自分で設定したユーザー名を返すことも確認してください。
 
 **躓きポイント**
 
-- **作業ディレクトリは必ず Linux 側（`~/` 配下）に置いてください。** `/mnt/c/Users/...` は Windows のファイルシステムをマウントしたもので、ファイルアクセスが桁違いに遅くなります。`node_modules` のように小さいファイルを大量に読み書きする場面で顕著に効きます
-- Ubuntu の初回起動時に設定するユーザー名とパスワードは、Windows のアカウントとは無関係です。`sudo` を使うたびに要求されるので忘れないように
-- **`sudo apt update && sudo apt upgrade` は必ず実行してください。** WSL で配布される Ubuntu のイメージは、ダウンロードした時点で既に数か月分の更新が溜まっていることがあります。この状態のまま進むと、[1.3](#13-nvm) 以降で「公式手順どおりにやったのに動かない」という形で問題が表面化します（古い `curl` が新しい TLS 設定に対応していない、証明書が期限切れになっている、など）。原因が分かりにくく、切り分けに時間を取られる種類のエラーです
-- `apt upgrade` は途中で「続行しますか?」と確認を求めます。`y` を入力してください。初回は数分かかることがあります
-- **`build-essential` も同時に入れておいてください。** C/C++ のコンパイラ一式です。npm パッケージの中には、インストール時に C++ のコードをその場でコンパイルするもの（ネイティブモジュール）が含まれることがあり、コンパイラが無いと `node-gyp` のエラーで失敗します。エラーメッセージから原因を特定しづらいので、先に入れておくほうが安全です
+> [!TIP]
+> - **作業ディレクトリは必ず Linux 側（`~/` 配下）に置いてください。** `/mnt/c/Users/...` は Windows のファイルシステムをマウントしたもので、ファイルアクセスが桁違いに遅くなります。`node_modules` のように小さいファイルを大量に読み書きする場面で顕著に効きます
+> - Ubuntu の初回起動時に設定するユーザー名とパスワードは、Windows のアカウントとは無関係です。`sudo` を使うたびに要求されるので忘れないように
+> - **`sudo apt update && sudo apt upgrade` は必ず実行してください。** WSL で配布される Ubuntu のイメージは、ダウンロードした時点で既に数か月分の更新が溜まっていることがあります。この状態のまま進むと、[1.3](#13-nvm) 以降で「公式手順どおりにやったのに動かない」という形で問題が表面化します（古い `curl` が新しい TLS 設定に対応していない、証明書が期限切れになっている、など）。原因が分かりにくく、切り分けに時間を取られる種類のエラーです
+> - `apt upgrade` は途中で「続行しますか?」と確認を求めます。`y` を入力してください。初回は数分かかることがあります
+> - **`build-essential` も同時に入れておいてください。** C/C++ のコンパイラ一式です。npm パッケージの中には、インストール時に C++ のコードをその場でコンパイルするもの（ネイティブモジュール）が含まれることがあり、コンパイラが無いと `node-gyp` のエラーで失敗します。エラーメッセージから原因を特定しづらいので、先に入れておくほうが安全です
 
 Microsoft は WSL 上での開発環境構築ガイドも公開しています。Git や認証まわりも含めて一通り確認したい場合はこちらを参照してください。
 
@@ -37,51 +32,37 @@ https://learn.microsoft.com/ja-jp/windows/wsl/setup/environment
 
 ## 1.2 VS Code + WSL 拡張
 
-**何のために**
-
 VS Code 本体は Windows 側にインストールし、WSL 拡張を通して Linux 側のファイルを編集します。この構成にすると、VS Code の統合ターミナルがそのまま Ubuntu のシェルになり、拡張機能も Linux 側で動きます。
-
-**手順**
 
 https://code.visualstudio.com/docs/remote/wsl
 
-**完了条件**
-
-Ubuntu のターミナルで `code .` を実行すると VS Code が開き、左下に「WSL: Ubuntu」と表示される。
+Ubuntu のターミナルで `code .` を実行すると VS Code が開き、左下に「WSL: Ubuntu」と表示されれば成功です。
 
 **躓きポイント**
 
-- VS Code 本体を WSL 内に `apt` で入れないでください。Windows 側に入れた本体に WSL 拡張を追加するのが正しい構成です
-- 拡張機能には「Windows 側にインストールされるもの」と「WSL 側にインストールされるもの」があります。言語サポート系（TypeScript、ESLint など）は WSL 側に入れる必要があり、拡張機能の一覧に「WSL: Ubuntu にインストール」ボタンが出ます
-- Windows のエクスプローラーから `\\wsl$\Ubuntu\...` を開いて編集することもできますが、この記事では扱いません
+> [!TIP]
+> - VS Code 本体を WSL 内に `apt` で入れないでください。Windows 側に入れた本体に WSL 拡張を追加するのが正しい構成です
+> - 拡張機能には「Windows 側にインストールされるもの」と「WSL 側にインストールされるもの」があります。言語サポート系（TypeScript、ESLint など）は WSL 側に入れる必要があり、拡張機能の一覧に「WSL: Ubuntu にインストール」ボタンが出ます
+> - Windows のエクスプローラーから `\\wsl$\Ubuntu\...` を開いて編集することもできますが、この記事では扱いません
 
 ## 1.3 nvm
 
-**何のために**
-
 Node.js のバージョンを切り替えるためのツールです。プロジェクトごとに要求される Node.js のバージョンは異なり、複数のプロジェクトを並行して触ると必ず衝突します。nvm を入れておくと、ディレクトリを移動するだけで適切なバージョンに切り替わる状態を作れます。
-
-**手順**
 
 https://github.com/nvm-sh/nvm#install--update-script
 
-**完了条件**
-
-新しいターミナルを開いて `command -v nvm` を実行すると `nvm` と表示される。
+新しいターミナルを開いて `command -v nvm` を実行し、`nvm` と表示されれば成功です。
 
 **躓きポイント**
 
-- **`which nvm` では確認できません。** nvm はシェル関数として読み込まれるもので、実行可能ファイルではないためです。公式が案内している通り `command -v nvm` を使ってください
-- インストール直後は現在のターミナルに反映されていません。ターミナルを開き直すか、`source ~/.bashrc` を実行してください
-- WSL で `Could not resolve host: raw.githubusercontent.com` が出る場合、DNS の設定が原因のことがあります。公式 README の WSL Troubleshooting に対処法があります: https://github.com/nvm-sh/nvm#wsl-troubleshooting
+> [!TIP]
+> - **`which nvm` では確認できません。** nvm はシェル関数として読み込まれるもので、実行可能ファイルではないためです。公式が案内している通り `command -v nvm` を使ってください
+> - インストール直後は現在のターミナルに反映されていません。ターミナルを開き直すか、`source ~/.bashrc` を実行してください
+> - WSL で `Could not resolve host: raw.githubusercontent.com` が出る場合、DNS の設定が原因のことがあります。公式 README の WSL Troubleshooting に対処法があります: https://github.com/nvm-sh/nvm#wsl-troubleshooting
 
 ### LTS 版の Node.js をインストールする
 
-**何のために**
-
 LTS (Long Term Support) は長期サポート対象のリリースラインで、偶数バージョンが該当します。特別な理由がない限り LTS を使います。
-
-**手順**
 
 https://github.com/nvm-sh/nvm#long-term-support
 
@@ -92,28 +73,23 @@ nvm alias default 'lts/*'
 
 1行目で最新の LTS をインストールし、2行目で新しいターミナルを開いたときのデフォルトに設定します。
 
-**完了条件**
-
-新しいターミナルを開いて `node -v` と `npm -v` がバージョンを返す。
+新しいターミナルを開き、`node -v` と `npm -v` がバージョンを返せば成功です。
 
 **躓きポイント**
 
-- `lts/*` のクォートは必要です。付けないとシェルがワイルドカードとして解釈します
-- `nvm alias default` を設定しないと、新しいターミナルを開くたびに `node: command not found` になります
+> [!TIP]
+> - `lts/*` のクォートは必要です。付けないとシェルがワイルドカードとして解釈します
+> - `nvm alias default` を設定しないと、新しいターミナルを開くたびに `node: command not found` になります
 
 ### `cd` したときに自動でバージョンを切り替える
 
-**何のために**
-
 プロジェクトのルートに `.nvmrc` というファイルを置くと、そのプロジェクトが要求する Node.js のバージョンを宣言できます。ただし標準では、ディレクトリを移動したあとに `nvm use` を手動で叩く必要があります。これを自動化します。
-
-**手順**
 
 https://github.com/nvm-sh/nvm#bash
 
 上記リンク先にある `cdnvm` 関数を `$HOME/.bashrc` の末尾に貼り付けます。
 
-**完了条件**
+貼り付けたらターミナルを開き直し、次の手順で動作を確認します。
 
 ```bash
 mkdir -p ~/nvmrc-test && cd ~/nvmrc-test
@@ -126,10 +102,11 @@ cd nvmrc-test   # ここで "Now using node ..." と表示されれば成功
 
 **躓きポイント**
 
-- **貼り付ける位置は、nvm を読み込む行より後でなければなりません。** nvm のインストーラが `.bashrc` に追記した `[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"` の行より下に置いてください。上に置くと `nvm_find_up: command not found` になります
-- このスクリプトは `cd` をエイリアスで置き換えます。副作用として、`cd` するたびに `.nvmrc` の探索が走るぶんだけ動作が重くなります
-- **公式 README はこのレシピを「利用者から寄せられたもので、nvm のメンテナはサポートしない」と明示しています。** 動かなくなったときに公式のサポートは期待できない点は理解した上で使ってください
-- zsh を使っている場合はスクリプトが異なります: https://github.com/nvm-sh/nvm#zsh
+> [!TIP]
+> - **貼り付ける位置は、nvm を読み込む行より後でなければなりません。** nvm のインストーラが `.bashrc` に追記した `[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"` の行より下に置いてください。上に置くと `nvm_find_up: command not found` になります
+> - このスクリプトは `cd` をエイリアスで置き換えます。副作用として、`cd` するたびに `.nvmrc` の探索が走るぶんだけ動作が重くなります
+> - **公式 README はこのレシピを「利用者から寄せられたもので、nvm のメンテナはサポートしない」と明示しています。** 動かなくなったときに公式のサポートは期待できない点は理解した上で使ってください
+> - zsh を使っている場合はスクリプトが異なります: https://github.com/nvm-sh/nvm#zsh
 
 ## 1.4 safe-chain
 
@@ -157,17 +134,11 @@ XSS に対するエスケープや SQL インジェクションに対するプ�
 
 ### 導入
 
-**何のために**
-
 safe-chain は Aikido Security が提供する OSS の CLI ツールで、`npm` や `npx` などのコマンドをラップし、インストールしようとしているパッケージがマルウェアとして報告されていないかを事前に確認します。無償で、アカウント登録もトークンも不要です。
-
-**手順**
 
 https://github.com/AikidoSec/safe-chain#installation
 
-**完了条件**
-
-ターミナルを開き直したうえで `npm safe-chain-verify` を実行し、`OK: Safe-chain works!` と表示される。さらに検証用の
+インストールしたらターミナルを開き直し、`npm safe-chain-verify` を実行します。`OK: Safe-chain works!` と表示されれば成功です。さらに検証用の
 
 ```bash
 npm install safe-chain-test
@@ -177,18 +148,15 @@ npm install safe-chain-test
 
 **躓きポイント**
 
-- **かつては `npm install -g @aikidosec/safe-chain` でインストールする方式でしたが、現在は配布用のインストールスクリプトを使う方式に変わっています。** 古い記事を参考にしないでください
-- インストール後は必ずターミナルを開き直してください。パッケージマネージャのコマンドを差し替えるエイリアスが、再起動しないと読み込まれません
-- **既定では、公開から48時間が経過していないバージョンはインストール対象から外されます。** [2章](02_frontend.md)以降で「最新版のはずなのに1つ前のバージョンが入る」ことがありますが、これは異常ではなく意図された挙動です。`--safe-chain-minimum-package-age-hours` で変更できます
-- `.bashrc` への追記が nvm のものと並ぶことになります。動作がおかしい場合は、両者の記述順を確認してください
+> [!TIP]
+> - **かつては `npm install -g @aikidosec/safe-chain` でインストールする方式でしたが、現在は配布用のインストールスクリプトを使う方式に変わっています。** 古い記事を参考にしないでください
+> - インストール後は必ずターミナルを開き直してください。パッケージマネージャのコマンドを差し替えるエイリアスが、再起動しないと読み込まれません
+> - **既定では、公開から48時間が経過していないバージョンはインストール対象から外されます。** [2章](02_frontend.md)以降で「最新版のはずなのに1つ前のバージョンが入る」ことがありますが、これは異常ではなく意図された挙動です。`--safe-chain-minimum-package-age-hours` で変更できます
+> - `.bashrc` への追記が nvm のものと並ぶことになります。動作がおかしい場合は、両者の記述順を確認してください
 
 ## 1.5 gh (GitHub CLI)
 
-**何のために**
-
 GitHub をコマンドラインから操作するツールです。この記事では主に認証のために使います。`gh auth login` を実行すると、GitHub CLI 自体の認証に加えて、`git push` する際の認証も同時に設定できます。ブラウザでトークンを発行して手動で設定する手間がなくなります。
-
-**手順**
 
 https://github.com/cli/cli/blob/trunk/docs/install_linux.md
 
@@ -207,27 +175,24 @@ gh auth login
 - Authenticate Git with your GitHub credentials? → **Yes**
 - How would you like to authenticate? → **Login with a web browser**
 
-**完了条件**
-
-`gh auth status` が、ログイン済みのアカウント名を表示する。
+`gh auth status` がログイン済みのアカウント名を表示すれば成功です。
 
 **躓きポイント**
 
-- **`gh auth login` は Git のユーザー名とメールアドレスを設定しません。** これは別途必要です。設定しないと最初のコミットで失敗します
-
-  ```bash
-  git config --global user.name "Your Name"
-  git config --global user.email "you@example.com"
-  ```
-
-  メールアドレスを公開したくない場合は、GitHub が提供する `noreply` アドレスを使えます: https://docs.github.com/ja/account-and-profile/setting-up-and-managing-your-personal-account-on-github/managing-email-preferences/setting-your-commit-email-address
-
-- Ubuntu には `git` が入っていない場合があります。`git --version` で確認し、無ければ `sudo apt install git` を実行してください
-- ブラウザ認証では WSL 内から Windows 側のブラウザが開きます。開かない場合は表示される URL を手動でコピーしてください
+> [!TIP]
+> - **`gh auth login` は Git のユーザー名とメールアドレスを設定しません。** これは別途必要です。設定しないと最初のコミットで失敗します
+>
+>   ```bash
+>   git config --global user.name "Your Name"
+>   git config --global user.email "you@example.com"
+>   ```
+>
+>   メールアドレスを公開したくない場合は、GitHub が提供する `noreply` アドレスを使えます: https://docs.github.com/ja/account-and-profile/setting-up-and-managing-your-personal-account-on-github/managing-email-preferences/setting-your-commit-email-address
+>
+> - Ubuntu には `git` が入っていない場合があります。`git --version` で確認し、無ければ `sudo apt install git` を実行してください
+> - ブラウザ認証では WSL 内から Windows 側のブラウザが開きます。開かない場合は表示される URL を手動でコピーしてください
 
 ## 1.6 任意) ターミナル操作に慣れる
-
-**何のために**
 
 以降の章はすべてターミナル上で進みます。以下のコマンドは説明なしで使うので、初めて見るものがあればこの時点で触っておいてください。
 
@@ -244,27 +209,23 @@ gh auth login
 
 **躓きポイント**
 
-- `rm -rf` に確認はありません。特にホームディレクトリ直下で実行するときは、パスを2回読んでから Enter を押してください
-- ドットで始まるファイル（`.bashrc`、`.nvmrc`、`.env`）は `ls` では表示されません。`ls -a` を使ってください
-- Tab キーでパスが補完されます。手で打つよりタイプミスが減ります
+> [!TIP]
+> - `rm -rf` に確認はありません。特にホームディレクトリ直下で実行するときは、パスを2回読んでから Enter を押してください
+> - ドットで始まるファイル（`.bashrc`、`.nvmrc`、`.env`）は `ls` では表示されません。`ls -a` を使ってください
+> - Tab キーでパスが補完されます。手で打つよりタイプミスが減ります
 
 ## 1.7 任意) ghq
 
-**何のために**
-
 リポジトリを `~/ghq/github.com/{ユーザー名}/{リポジトリ名}` という規則的なパスに配置してくれるツールです。リポジトリが増えてくると、どこにクローンしたか分からなくなる問題を解消できます。
-
-**手順**
 
 https://github.com/x-motemen/ghq#installation
 
-**完了条件**
-
-`ghq get <リポジトリURL>` でクローンでき、`ghq list` に表示される。
+`ghq get <リポジトリURL>` でクローンでき、`ghq list` に表示されれば成功です。
 
 **躓きポイント**
 
-- 導入は必須ではありません。この記事で作るのは1リポジトリだけなので、恩恵を感じるのは他のプロジェクトを扱い始めてからです
-- `fzf` と組み合わせると `ghq list | fzf` でリポジトリを検索して移動できます。ただし本筋から外れるのでここでは扱いません
+> [!TIP]
+> - 導入は必須ではありません。この記事で作るのは1リポジトリだけなので、恩恵を感じるのは他のプロジェクトを扱い始めてからです
+> - `fzf` と組み合わせると `ghq list | fzf` でリポジトリを検索して移動できます。ただし本筋から外れるのでここでは扱いません
 
 ---
