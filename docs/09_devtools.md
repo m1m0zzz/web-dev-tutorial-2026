@@ -20,7 +20,7 @@ curl -fsSL https://claude.ai/install.sh | bash
 
 `claude --version` がバージョンを表示し、`claude doctor` が設定の診断結果を表示すれば成功です。プロジェクトのディレクトリで `claude` を実行すると、対話セッションが始まります。
 
-**躓きポイント**
+**つまずきポイント**
 
 > [!TIP]
 > - **利用には Pro / Max / Team / Enterprise / Console のいずれかのアカウントが必要です。** 無料の Claude.ai プランには含まれません
