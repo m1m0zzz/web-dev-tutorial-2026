@@ -362,17 +362,23 @@ git commit -m "chore: setup npm workspaces"
 git push
 ```
 
-## 1.9 任意) Claude Code
+## 1.9 任意) Claude Code / Codex
 
 ターミナル上で動くコーディングエージェントです。コードベースを読んだうえで、実装やリファクタリング、調査を任せられます。以降の章で、分からないことを聞く相手として使えます。
+
+**Claude Code（Anthropic）と Codex（OpenAI）のどちらでも構いません。** できることはほぼ同じで、この記事はどちらかに依存しません。両方入れて使い分けても構いません。
 
 **扱うこと**
 
 - インストールと認証
-- `AGENTS.md`（`CLAUDE.md`）によるプロジェクト固有の指示
+- `AGENTS.md` によるプロジェクト固有の指示
 - 権限設定
 
-WSL のターミナルで実行します（Windows 側ではなく、WSL の中に入れます）。
+どちらも WSL のターミナルで実行します（Windows 側ではなく、WSL の中に入れます）。
+
+**Claude Code**
+
+https://code.claude.com/docs/en/setup
 
 ```bash
 curl -fsSL https://claude.ai/install.sh | bash
@@ -380,15 +386,35 @@ curl -fsSL https://claude.ai/install.sh | bash
 
 `claude --version` がバージョンを表示し、`claude doctor` が設定の診断結果を表示すれば成功です。プロジェクトのディレクトリで `claude` を実行すると、対話セッションが始まります。
 
+**Codex**
+
+https://developers.openai.com/codex/cli
+
+```bash
+curl -fsSL https://chatgpt.com/codex/install.sh | sh
+```
+
+`codex --version` がバージョンを表示すれば成功です。プロジェクトのディレクトリで `codex` を実行すると対話セッションが始まり、初回はサインインを求められます。`codex doctor` で、認証や設定の状態をまとめて確認できます。
+
+**プロジェクト固有の指示**
+
+どちらもリポジトリのルートに置いた **`AGENTS.md`** を読み、そこに書いた指示に従います。「このプロジェクトではテストを `npm test -w apps/web` で走らせる」といった、毎回説明したくないことをここに書いておきます。
+
+Claude Code は歴史的に `CLAUDE.md` という名前を使っており、どちらも読みます。**実体を `AGENTS.md` にして、`CLAUDE.md` はそのシンボリックリンクにしておくと、内容が二重管理になりません。**
+
+```bash
+ln -s AGENTS.md CLAUDE.md
+```
+
 **つまずきポイント**
 
 > [!TIP]
-> - **利用には Pro / Max / Team / Enterprise / Console のいずれかのアカウントが必要です。** 無料の Claude.ai プランには含まれません
-> - 初回は `claude` を実行するとブラウザでのログインを求められます
+> - **Claude Code の利用には Pro / Max / Team / Enterprise / Console のいずれかのアカウントが必要です。** 無料の Claude.ai プランには含まれません
+> - **Codex は無料プランでも使えます。** 公式のプラン表では ChatGPT Free / Go / Plus / Pro / Business / Edu / Enterprise に含まれるとされています（使用量の上限はプランごとに違います）。API キーで使うこともできます
+> - どちらも初回の実行時にブラウザでのログインを求められます
 > - npm でグローバルインストールする方法もありますが、**`sudo npm install -g` は使わないでください**（権限の問題が起きます）
 > - ネイティブインストーラで入れた場合、更新はバックグラウンドで自動的に行われます
-
-参考: https://code.claude.com/docs/en/setup
+> - **生成されたコードをそのままコミットしないでください。** この記事の目的は、動くコードを手に入れることではなく、動かないときに何を見ればいいかが分かるようになることです
 
 ---
 
