@@ -72,5 +72,3 @@ https://herdr.dev/
 
 - シェルのプロンプトのカスタマイズ
 - `.editorconfig` によるエディタ設定の共有
-
----
