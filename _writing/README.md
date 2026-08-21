@@ -4,7 +4,7 @@
 
 | ファイル | 中身 |
 |---|---|
-| [`CLAUDE.md`](CLAUDE.md) | 執筆時の指示（節の書式、参照リンク、調査の原則など） |
+| [`AGENTS.md`](AGENTS.md) | 執筆時の指示（節の書式、参照リンク、調査の原則など）。`CLAUDE.md` はこれへのシンボリックリンク |
 | [`sync-chapters.sh`](sync-chapters.sh) | 章ブランチを `main` の履歴に合わせて付け直す |
 
 ## 最初に: `.mode` を作る
@@ -15,7 +15,7 @@
 echo author > .mode
 ```
 
-`author` なら執筆者、`user` またはファイルが無ければ学習者です。判定はルートの [`../CLAUDE.md`](../CLAUDE.md) の冒頭に書いてあります。**学習者の手元には存在しない**ので、`.gitignore` に入れてコミットしません。
+`author` なら執筆者、`user` またはファイルが無ければ学習者です。判定はルートの [`../AGENTS.md`](../AGENTS.md) の冒頭に書いてあります。**学習者の手元には存在しない**ので、`.gitignore` に入れてコミットしません。
 
 ## 履歴とブランチのモデル
 
@@ -47,13 +47,14 @@ ba0398f  test: 4章 テストを書く                          <- chapter-04
 | `.github/workflows/*.yml` | 5章のコミット | 記事 5.2 で読者が作る |
 | `playwright.config.ts`、`tests/e2e/**` | 8章のコミット | 記事 8章で読者が作る |
 | `package.json`、`package-lock.json` | 依存を追加した章のコミット | 記事の手順で `npm i` するタイミング |
-| `docs/**`、`README.md`、`CLAUDE.md`、`_writing/**`、`renovate.json` | **先端**（ケース1） | 記事に出てこない。章ブランチには含まれない |
+| `docs/**`、`README.md`、`_writing/**`、`renovate.json` | **先端**（ケース1） | 記事に出てこない。章ブランチには含まれない |
+| `AGENTS.md`、`CLAUDE.md` | **1章のコミット**（ケース5） | 記事に出てこないが、どの章ブランチでもエージェントに読ませたい |
 
 `.gitignore` の `.mode` の行だけは例外で、**先端**に入れてあります。記事に出てこない、執筆者だけのファイルだからです。そのぶん章ブランチでは `.mode` が無視されません（下の `git add -A` の注意を参照）。
 
 **`chapter-01` はリポジトリの骨組みだけです。** 1.6 で作る `.nvmrc`、`.gitignore`、ルートの `package.json` の3つで、依存はまだ入れないので `package-lock.json` もありません。CI もこのブランチだけは `npm ci` を打たず、`npm pkg get workspaces` が通ることだけを見ています。
 
-**章ブランチには、記事に出てくるファイルしか入っていません。** `CLAUDE.md` や `README.md` を直しても章ブランチは変わりませんし、変える必要もありません。
+**章ブランチに入っているのは、記事に出てくるファイルと `AGENTS.md` / `CLAUDE.md` だけです。** `README.md` や `docs/**` を直しても章ブランチは変わりませんし、変える必要もありません。
 
 ### 例: Node.js の LTS が上がったとき
 
@@ -170,6 +171,29 @@ git push origin main
 3. `.github/workflows/ci.yml` の `chapters` ジョブの matrix に `chapter-0N` を足す
 4. `README.md` と `docs/00_introduction.md` の対応表に行を足す
 
+## ケース5: AGENTS.md を直す
+
+`AGENTS.md` は**1章のコミットに入れてあります**。`CLAUDE.md` はそれへのシンボリックリンクです。1章のコミットは全章ブランチの祖先なので、`git checkout chapter-05` のように途中の章に移動しても、エージェントがそのまま読める状態になります。
+
+> [!NOTE]
+> 「GitHub から取ってくる」案もありましたが、採りませんでした。Claude Code も codex も、**作業ツリーにあるファイルしか自動では読みません**。手元に無いものを読ませるには学習者が毎回指示する必要があり、置いておく意味がなくなります。
+>
+> 代わりに、直すたびにルートのコミットを書き換えるコストを払っています。`AGENTS.md` は先端には存在しません（1章のコミットから引き継がれているだけです）。
+
+```bash
+# 1章のコミットを edit にする
+git rebase -i --root
+
+$EDITOR AGENTS.md
+git add AGENTS.md
+git commit --amend --no-edit
+git rebase --continue
+
+./_writing/sync-chapters.sh --push
+```
+
+**先端で `AGENTS.md` を直してコミットしないでください。** 一見それで動きますが、その変更は章ブランチには届きません。
+
 ## sync-chapters.sh
 
 ```bash
@@ -190,6 +214,8 @@ git push origin main
 - [x] **Claude Code のセットアップ（9.1）を1章に移す** → [1.9](../docs/01_setup.md#19-任意-claude-code)
 - [x] **`ghcd`（`ghq` + `fzf`）を最後の章に書く** → [9.1](../docs/09_devtools.md#91-ghq--fzf-でリポジトリを移動する)。[1.8](../docs/01_setup.md#18-任意-ghq) の ghq の節から参照している
 - [ ] **各章のコードを codex でレビューする**
+- [ ] **`AGENTS.md` を正とし、`CLAUDE.md` はそのシンボリックリンクにする**
+- [ ] **章ブランチに checkout しても `AGENTS.md` / `CLAUDE.md` が残るようにする**（コミットに入れるか、GitHub から取るかを検討）
 
 ## 確認済みの事項
 
