@@ -44,7 +44,7 @@ ba0398f  test: 4章 テストを書く                          <- chapter-04
 |---|---|---|
 | `apps/**` | その章のコミット | 章のコードそのもの |
 | `.nvmrc`、`.gitignore`、ルートの `package.json` | 1章のコミット | 記事 1.8 で読者が作る |
-| `eslint.config.mjs`、`.prettierrc.json`、`.prettierignore` | 2章のコミット | 記事 2.10 で読者が作る |
+| `.oxlintrc.json`、`.oxfmtrc.json` | 2章のコミット | 記事 2.10 で読者が作る |
 | `.github/workflows/*.yml` | 5章のコミット | 記事 5.2 で読者が作る |
 | `playwright.config.ts`、`tests/e2e/**` | 8章のコミット | 記事 8章で読者が作る |
 | `package.json`、`package-lock.json` | 依存を追加した章のコミット | 記事の手順で `npm i` するタイミング |
@@ -227,7 +227,7 @@ git rebase --continue
 | 全体 | 完成コードはこのリポジトリ。章ごとのブランチ（`chapter-01` 〜）を順次追加 |
 | 2 | Node.js の LTS は 24。`create-vite` 9系の生成物（Vite 8 / React 19 / TS 6、Lint は oxlint） |
 | [2.9](../docs/02_frontend.md#29-react-router-でページを分ける) | React Router v8。モードの呼称（Framework / Data / Declarative）は変わっていない |
-| [2.10](../docs/02_frontend.md#210-任意-eslint--prettier-のセットアップ) | ESLint 10 + typescript-eslint + Prettier 3。`eslint-config-prettier` は不要 |
+| [2.10](../docs/02_frontend.md#210-任意-oxlint--oxfmt-のセットアップ) | oxlint 1.79 / oxfmt 0.64。`create-vite` が入れるのは oxlint だけで、oxfmt も `oxlint-tsgolint` も入らない。oxlint は既定で `correctness` カテゴリのみ、react プラグインは off。型情報を使うルールには `oxlint-tsgolint` + `--type-aware` が要る。`overrides` の `plugins` は既定のプラグインを置き換えず足し算になる |
 | [3.2](../docs/03_backend.md#32-npm-create-honolatest) | `create-hono` 0.19 系の生成物。`"private": true` は入っていない |
 | [3.5](../docs/03_backend.md#35-環境変数とシークレット) | `wrangler types` が `vars` をリテラル型、`.dev.vars` のキーを `string` として生成する |
 | [3.6](../docs/03_backend.md#36-drizzle--d1-で-posts-テーブルを作る) | Drizzle 0.45 / drizzle-kit 0.31。ローカル D1 は `.wrangler/state/v3/d1/miniflare-D1DatabaseObject/<hash>.sqlite` |
