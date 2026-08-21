@@ -214,8 +214,8 @@ git rebase --continue
 - [x] **Claude Code のセットアップ（9.1）を1章に移す** → [1.9](../docs/01_setup.md#19-任意-claude-code)
 - [x] **`ghcd`（`ghq` + `fzf`）を最後の章に書く** → [9.1](../docs/09_devtools.md#91-ghq--fzf-でリポジトリを移動する)。[1.8](../docs/01_setup.md#18-任意-ghq) の ghq の節から参照している
 - [ ] **各章のコードを codex でレビューする**
-- [ ] **`AGENTS.md` を正とし、`CLAUDE.md` はそのシンボリックリンクにする**
-- [ ] **章ブランチに checkout しても `AGENTS.md` / `CLAUDE.md` が残るようにする**（コミットに入れるか、GitHub から取るかを検討）
+- [x] **`AGENTS.md` を正とし、`CLAUDE.md` はそのシンボリックリンクにする** → ルートと `_writing/` の両方
+- [x] **章ブランチに checkout しても `AGENTS.md` / `CLAUDE.md` が残るようにする** → 1章のコミットに入れた（ケース5）
 
 ## 確認済みの事項
 
