@@ -184,9 +184,3 @@ safe-chain のインストールスクリプトは、URL にバージョンが�
 | `VITE_API_URL` | Variable | デプロイした API の URL |
 
 `BETTER_AUTH_SECRET` は GitHub には登録しません。**Cloudflare 側に `wrangler secret put` で入れておけば、デプロイしても消えません。**
-
----
-
----
-
-**この章のコード**: `chapter-05` ブランチ
