@@ -67,7 +67,7 @@ echo author > .mode
 | 単体テスト | Vitest（フロント: Testing Library / バック: vitest-pool-workers） |
 | E2E | Playwright、ローカル dev サーバーに対して実行 |
 | コード提示 | 差分・該当箇所のみ。完成コードはこのリポジトリ。章ごとにブランチ |
-| Lint / Format | ESLint + Prettier。workspace ルートに集約 |
+| Lint / Format | oxlint + oxfmt。workspace ルートに集約 |
 | SEO | 対策はしない。[7.5](../docs/07_features.md#75-csr-の限界) で CSR の限界として提示し、次の一歩の入り口とする |
 
 ### データモデル
@@ -115,7 +115,7 @@ echo author > .mode
 この点は [6.5](06_api-integration.md#65-認証情報の受け渡し) で認証トークンを…
 ```
 
-アンカーは GitHub の生成規則で作ります。**小文字化 → 単語文字・空白・ハイフン以外を削除 → 空白1つをハイフン1つに置換**。`ESLint / Prettier` のように、削除された記号の前後に空白が残る見出しは `eslint--prettier` と**ハイフンが2つ**になります。
+アンカーは GitHub の生成規則で作ります。**小文字化 → 単語文字・空白・ハイフン以外を削除 → 空白1つをハイフン1つに置換**。`oxlint / oxfmt` のように、削除された記号の前後に空白が残る見出しは `oxlint--oxfmt` と**ハイフンが2つ**になります。
 
 **節を追加・削除して番号がずれたときは、`docs/` 全体と `_writing/` を横断してリンクを直してください。** `_writing/README.md` の確認事項も章番号を含みます。
 
