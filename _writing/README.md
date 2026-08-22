@@ -227,59 +227,60 @@ git rebase --continue
 - 節のチェック: その節の見直しが終わった時点で付ける
 - 章のチェック: 全節 + codex のレビュー反映まで終わったら付ける
 - 記事の変更がコードに及ぶ場合は、[どのコミットに入れるか](#どのコミットに入れるか)に従う（章のコードを直すならケース2）
+- codex のレビュー結果は `brushups/N_codex-review.md` に、**対応済み / 保留 / 著者判断 / 対応しない / 他の章へ持ち越し**で分類して残す。コードのレビュー結果（[`codex-review.md`](codex-review.md)）とは別ファイル
 
-- [ ] **[イントロダクション](../docs/00_introduction.md)**
+- [x] **[イントロダクション](../docs/00_introduction.md)** → [レビュー結果](../brushups/0_codex-review.md)
   - [x] この記事について
   - [x] 目次
-- [ ] **[1 環境構築](../docs/01_setup.md)**
-  - [ ] 1.1 WSL2 (Ubuntu)
-  - [ ] 1.2 VS Code + WSL 拡張
-  - [ ] 1.3 nvm
-  - [ ] 1.4 サプライチェーン攻撃の対策
-  - [ ] 1.5 gh (GitHub CLI)
-  - [ ] 1.6 ターミナル操作に慣れる
-  - [ ] 1.7 任意) ghq
-  - [ ] 1.8 リポジトリと workspace を作る
-  - [ ] 1.9 任意) Claude Code / Codex
-- [ ] **[2 React でフロントエンドを作る](../docs/02_frontend.md)**
-  - [ ] 2.1 `npm create vite@latest`
-  - [ ] 2.2 モダン JavaScript の前提知識
-  - [ ] 2.3 TypeScript と JSX の読み方
-  - [ ] 2.4 カウンター
-  - [ ] 2.5 タイマー
-  - [ ] 2.6 編集可能なリスト (メモリスト)
-  - [ ] 2.7 コンポーネント分離
-  - [ ] 2.8 CSS 基礎
-  - [ ] 2.9 React Router でページを分ける
-  - [ ] 2.10 任意) oxlint / oxfmt のセットアップ
-  - [ ] 2.11 任意) React の仕組み / なぜ SPA なのか
-  - [ ] 2.12 任意) CSR / SSG / SSR / ISR
-- [ ] **[3 Hono でバックエンドを作る](../docs/03_backend.md)**
-  - [ ] 3.1 Cloudflare アカウント作成 / `wrangler login`
-  - [ ] 3.2 `npm create hono@latest`
-  - [ ] 3.3 最初のエンドポイント `/health`
-  - [ ] 3.4 ブラウザと curl から叩く
-  - [ ] 3.5 環境変数とシークレット
-  - [ ] 3.6 Drizzle + D1 で `posts` テーブルを作る
-  - [ ] 3.7 入力バリデーション
-  - [ ] 3.8 `posts` の CRUD エンドポイント
-  - [ ] 3.9 認証・認可の基礎
-  - [ ] 3.10 Better Auth を導入し、`posts` をユーザーに紐づける
-  - [ ] 3.11 公開用のエンドポイント
-- [ ] **[4 テストを書く](../docs/04_test.md)**
-  - [ ] 4.1 フロントエンドのテスト
-  - [ ] 4.2 バックエンドのテスト
-- [ ] **[5 デプロイする](../docs/05_deploy.md)**
-  - [ ] 5.1 環境変数・シークレットの置き場所を決める
-  - [ ] 5.2 GitHub Actions を構築する
-- [ ] **[6 フロントから API を呼ぶ](../docs/06_api-integration.md)**
-  - [ ] 6.1 `async` / `await` と Promise
-  - [ ] 6.2 CORS
-  - [ ] 6.3 素の fetch で呼ぶ
-  - [ ] 6.4 Hono RPC で型安全に呼ぶ
-  - [ ] 6.5 React Query に載せる
-  - [ ] 6.6 認証情報の受け渡し
-  - [ ] 6.7 環境変数を追加して再デプロイ
+- [x] **[1 環境構築](../docs/01_setup.md)** → [レビュー結果](../brushups/1_codex-review.md)
+  - [x] 1.1 WSL2 (Ubuntu)
+  - [x] 1.2 VS Code + WSL 拡張
+  - [x] 1.3 nvm
+  - [x] 1.4 サプライチェーン攻撃の対策
+  - [x] 1.5 gh (GitHub CLI)
+  - [x] 1.6 ターミナル操作に慣れる
+  - [x] 1.7 任意) ghq
+  - [x] 1.8 リポジトリと workspace を作る
+  - [x] 1.9 任意) Claude Code / Codex
+- [x] **[2 React でフロントエンドを作る](../docs/02_frontend.md)** → [レビュー結果](../brushups/2_codex-review.md)
+  - [x] 2.1 `npm create vite@latest`
+  - [x] 2.2 モダン JavaScript の前提知識
+  - [x] 2.3 TypeScript と JSX の読み方
+  - [x] 2.4 カウンター
+  - [x] 2.5 タイマー
+  - [x] 2.6 編集可能なリスト (メモリスト)
+  - [x] 2.7 コンポーネント分離
+  - [x] 2.8 CSS 基礎
+  - [x] 2.9 React Router でページを分ける
+  - [x] 2.10 oxlint / oxfmt のセットアップ
+  - [x] 2.11 任意) React の仕組み / なぜ SPA なのか
+  - [x] 2.12 任意) CSR / SSG / SSR / ISR
+- [x] **[3 Hono でバックエンドを作る](../docs/03_backend.md)** → [レビュー結果](../brushups/3_codex-review.md)
+  - [x] 3.1 Cloudflare アカウント作成 / `wrangler login`
+  - [x] 3.2 `npm create hono@latest`
+  - [x] 3.3 最初のエンドポイント `/health`
+  - [x] 3.4 ブラウザと curl から叩く
+  - [x] 3.5 環境変数とシークレット
+  - [x] 3.6 Drizzle + D1 で `posts` テーブルを作る
+  - [x] 3.7 入力バリデーション
+  - [x] 3.8 `posts` の CRUD エンドポイント
+  - [x] 3.9 認証・認可の基礎
+  - [x] 3.10 Better Auth を導入し、`posts` をユーザーに紐づける
+  - [x] 3.11 公開用のエンドポイント
+- [x] **[4 テストを書く](../docs/04_test.md)** → [レビュー結果](../brushups/4_codex-review.md)
+  - [x] 4.1 フロントエンドのテスト
+  - [x] 4.2 バックエンドのテスト
+- [x] **[5 デプロイする](../docs/05_deploy.md)** → [レビュー結果](../brushups/5_codex-review.md)
+  - [x] 5.1 環境変数・シークレットの置き場所を決める
+  - [x] 5.2 GitHub Actions を構築する
+- [x] **[6 フロントから API を呼ぶ](../docs/06_api-integration.md)** → [レビュー結果](../brushups/6_codex-review.md)
+  - [x] 6.1 `async` / `await` と Promise
+  - [x] 6.2 CORS
+  - [x] 6.3 素の fetch で呼ぶ
+  - [x] 6.4 Hono RPC で型安全に呼ぶ
+  - [x] 6.5 React Query に載せる
+  - [x] 6.6 認証情報の受け渡し
+  - [x] 6.7 環境変数を追加して再デプロイ
 - [ ] **[7 機能を拡張する](../docs/07_features.md)**
   - [ ] 7.1 公開・非公開の切り替え
   - [ ] 7.2 未ログインでも見られるページの土台を作る
@@ -306,7 +307,7 @@ git rebase --continue
 | 全体 | この記事の範囲は Cloudflare の無料プランに収まる。Workers 100,000 リクエスト/日、D1 は読み取り 500 万行/日・書き込み 100,000 行/日・容量 5 GB、静的ファイルの配信は無制限（[Workers の料金](https://developers.cloudflare.com/workers/platform/pricing/) / [D1 の料金](https://developers.cloudflare.com/d1/platform/pricing/) で確認） |
 | 2 | Node.js の LTS は 24。`create-vite` 9系の生成物（Vite 8 / React 19 / TS 6、Lint は oxlint） |
 | [2.9](../docs/02_frontend.md#29-react-router-でページを分ける) | React Router v8。モードの呼称（Framework / Data / Declarative）は変わっていない |
-| [2.10](../docs/02_frontend.md#210-任意-oxlint--oxfmt-のセットアップ) | oxlint 1.79 / oxfmt 0.64。`create-vite` が入れるのは oxlint だけで、oxfmt も `oxlint-tsgolint` も入らない。oxlint は既定で `correctness` カテゴリのみ、react プラグインは off。型情報を使うルールには `oxlint-tsgolint` + `--type-aware` が要る。`overrides` の `plugins` は既定のプラグインを置き換えず足し算になる |
+| [2.10](../docs/02_frontend.md#210-oxlint--oxfmt-のセットアップ) | oxlint 1.79 / oxfmt 0.64。`create-vite` が入れるのは oxlint だけで、oxfmt も `oxlint-tsgolint` も入らない。oxlint は既定で `correctness` カテゴリのみ、react プラグインは off。型情報を使うルールには `oxlint-tsgolint` + `--type-aware` が要る。`overrides` の `plugins` は既定のプラグインを置き換えず足し算になる |
 | [3.2](../docs/03_backend.md#32-npm-create-honolatest) | `create-hono` 0.19 系の生成物。`"private": true` は入っていない |
 | [3.5](../docs/03_backend.md#35-環境変数とシークレット) | `wrangler types` が `vars` をリテラル型、`.dev.vars` のキーを `string` として生成する |
 | [3.6](../docs/03_backend.md#36-drizzle--d1-で-posts-テーブルを作る) | Drizzle 0.45 / drizzle-kit 0.31。ローカル D1 は `.wrangler/state/v3/d1/miniflare-D1DatabaseObject/<hash>.sqlite` |
@@ -333,6 +334,7 @@ git rebase --continue
 
 **Cloudflare のアカウントが必要なため、まだ実機で確認できていません。**
 
+- [0章](../docs/00_introduction.md): **完成版アプリの公開 URL。** デプロイが済むまで貼れないため、本文には `TODO(執筆時)` を置いてある
 - [3.1](../docs/03_backend.md#31-cloudflare-アカウント作成--wrangler-login): `wrangler login` の実際の画面遷移
 - [3.6](../docs/03_backend.md#36-drizzle--d1-で-posts-テーブルを作る): `wrangler d1 create` の出力
 - [5.1](../docs/05_deploy.md#51-環境変数シークレットの置き場所を決める): API トークンの発行画面と、必要な権限の最小セット

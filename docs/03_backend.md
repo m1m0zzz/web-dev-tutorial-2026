@@ -78,6 +78,7 @@ npm install
 
 > [!TIP]
 > - **生成された `apps/api/package.json` には `"private": true` が入っていません。** [1.8](01_setup.md#18-リポジトリと-workspace-を作る) で説明した理由から、手で追加してください
+> - **`wrangler.jsonc` の `"$schema"` のパスを直してください。** 生成されるのは `node_modules/wrangler/config-schema.json` ですが、workspace では依存がルートにまとめられる（[2.1](02_frontend.md#21-npm-create-vitelatest)）ため、`apps/api/node_modules/` は作られません。`"../../node_modules/wrangler/config-schema.json"` にします。**動作には影響しませんが、エディタでの補完と検証が効きません**
 > - 生成された `apps/api/.gitignore` は、ルートの `.gitignore` と内容が重複します。どちらかに寄せて構いませんが、**ルート側の記述は残してください**
 > - **`npm install` で `install-scripts` の警告が出ることがあります。** npm 12 以降は、インストール時に実行されるスクリプトを既定でブロックします（[1.4](01_setup.md#14-サプライチェーン攻撃の対策) のサプライチェーン攻撃への対策の一種です）。`npm install-scripts ls` でブロックされたパッケージを確認できます。この記事の構成では、ブロックされたままでも `wrangler dev` もビルドも動きます
 
@@ -85,13 +86,34 @@ npm install
 
 サーバーが生きているかを確認するためのエンドポイントです。実運用でも監視や死活監視に使われます。ここでは Hono のルーティングの書き方を覚えるのが目的です。
 
-**扱うこと**
+テンプレートが生成した `apps/api/src/index.ts` は `Hello Hono!` を返すだけの形です。これを書き換えます。
 
-- `app.get()` によるルーティング
-- レスポンスの返し方（`c.json()`、`c.text()`）
-- ステータスコードの指定
+```ts
+import { Hono } from 'hono'
 
-`/health` にアクセスして JSON が返れば成功です。
+const app = new Hono().get('/health', (c) => c.json({ status: 'ok' }))
+
+export default app
+```
+
+`get` の第1引数がパス、第2引数が**ハンドラ**（そのパスにリクエストが来たときに実行される関数）です。
+
+ハンドラが受け取る `c` は **Context** と呼ばれるもので、**リクエストの情報とレスポンスを作る道具が、1つにまとまったもの**です。リクエストは `c.req`、レスポンスは `c.json` などで作ります。
+
+| 書き方 | Content-Type | 使う場面 |
+|---|---|---|
+| `c.json({ status: 'ok' })` | `application/json` | API のレスポンス |
+| `c.text('ok')` | `text/plain` | 単純な文字列 |
+| `c.body(null, 204)` | なし | 本文を返さないとき（削除の成功など） |
+
+**ステータスコードは第2引数で指定します。** 省略すると 200 です。
+
+```ts
+c.json(row, 201)                       // 作成した
+c.json({ message: 'Not Found' }, 404)  // 見つからない
+```
+
+`npm run dev -w apps/api` を起動して `http://localhost:8787/health` を開き、`{"status":"ok"}` が表示されれば成功です。
 
 **つまずきポイント**
 
@@ -114,11 +136,78 @@ npm install
 
 API はブラウザで開くだけでは十分に確認できません。POST や PUT、ヘッダーの指定を伴うリクエストを送る手段が必要です。
 
-**扱うこと**
+**ブラウザのアドレスバーから送れるのは GET だけです。** POST や PUT、ヘッダーを付けたリクエストは送れません。ターミナルから `curl` で叩けるようにしておきます。
 
-- ブラウザで開けるのは GET だけであること
-- `curl` の基本（`-X`、`-H`、`-d`、`-i`、`-v`）
-- HTTP のメソッドとステータスコードの意味
+```bash
+curl http://localhost:8787/health
+```
+
+```
+{"status":"ok"}
+```
+
+**ステータスコードとヘッダーも見る**には `-i` を付けます。
+
+```bash
+curl -i http://localhost:8787/health
+```
+
+```
+HTTP/1.1 200 OK
+Content-Length: 15
+Content-Type: application/json
+
+{"status":"ok"}
+```
+
+**API がおかしいと思ったら、まず `-i` を付けてください。** 本文だけを見ていると、401 なのか 404 なのか 500 なのかが分かりません。
+
+**メソッドとボディを指定する**には `-X` と `-d` を使います。
+
+```bash
+curl -i -X POST http://localhost:8787/posts \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"買い物","content":"たまごを買う"}'
+```
+
+| オプション | 意味 |
+|---|---|
+| `-X` | HTTP メソッド（省略時は GET。`-d` を付けると POST になります） |
+| `-H` | ヘッダーを足す。JSON を送るときは `Content-Type` が必要です |
+| `-d` | リクエストボディ |
+| `-i` | レスポンスヘッダーも表示する |
+| `-v` | 接続の様子や送ったヘッダーまで表示する |
+
+**HTTP メソッド**
+
+| メソッド | 意味 |
+|---|---|
+| GET | 取得する。何度実行しても状態が変わらない |
+| POST | 作成する |
+| PUT | 置き換える（この記事では更新に使います） |
+| DELETE | 削除する |
+
+**ステータスコード**
+
+| 番号 | 意味 | この記事で出てくる場面 |
+|---|---|---|
+| 200 | 成功 | 取得・更新 |
+| 201 | 作成した | メモの作成（[3.8](#38-posts-の-crud-エンドポイント)） |
+| 204 | 成功したが本文は無い | メモの削除（[3.8](#38-posts-の-crud-エンドポイント)） |
+| 400 | リクエストが不正 | バリデーション違反（[3.7](#37-入力バリデーション)） |
+| 401 | 認証されていない | トークンが無い（[3.10](#310-better-auth-を導入しposts-をユーザーに紐づける)） |
+| 404 | 見つからない | 存在しない id、他人の非公開メモ（[3.10](#310-better-auth-を導入しposts-をユーザーに紐づける)） |
+| 500 | サーバー側のエラー | 想定外の例外 |
+
+**先頭の数字だけでも覚えてください。** 2xx は成功、**4xx は呼び出した側の問題、5xx はサーバー側の問題**です。4xx なら自分のリクエストを疑い、5xx ならサーバーのログを見る、という切り分けができます。
+
+定義していないパスやメソッドには、Hono が 404 を返します。
+
+```
+HTTP/1.1 404 Not Found
+Content-Length: 13
+Content-Type: text/plain; charset=UTF-8
+```
 
 `curl` で `/health` を叩き、ステータスコードとレスポンスボディを確認できれば成功です。
 
@@ -131,7 +220,7 @@ API キーやデータベースの接続情報をコードに直接書くと、�
 - ローカル開発用の `.dev.vars`
 - 本番用の `wrangler secret put`
 - 「環境変数」と「シークレット」の違い
-- Workers では `process.env` ではなく、リクエストのコンテキスト経由で環境変数にアクセスすること
+- Workers では、リクエストのコンテキスト（`c.env`）経由で環境変数にアクセスすること
 - 型定義の生成
 
 **設定の書き方**
@@ -181,22 +270,30 @@ npm run cf-typegen -w apps/api
 
 ```ts
 interface __BaseEnv_CloudflareBindings {
-  DB: D1Database
   CORS_ORIGIN: "http://localhost:5173"
   BETTER_AUTH_URL: "http://localhost:8787"
   BETTER_AUTH_SECRET: string
 }
 ```
 
+**この時点では `DB` は入りません。** D1 のバインディングを足すのは [3.6](#36-drizzle--d1-で-posts-テーブルを作る) なので、そのときに `cf-typegen` を実行し直すと `DB: D1Database` が増えます。
+
 `vars` の値は**リテラル型**（値そのものが型になる）、`.dev.vars` のキーは `string` 型になります。前者は「`wrangler.jsonc` に書いたその値しか入らない」という意味の型なので、本番で別の値を入れる前提のものを厳密に比較するようなコードを書くと、意図しない型エラーになることがあります。
 
-`.dev.vars` に書いた値が、ローカルで動かした API から読めれば成功です。
+**シークレットが読めているかを確かめるときは、値そのものを返さないでください。** 一時的に真偽値だけを返して確認し、確認できたら消します。
+
+```ts
+// 確認用。値そのものは返さない。確認できたら消す
+return c.json({ hasAuthSecret: c.env.BETTER_AUTH_SECRET.length > 0 })
+```
+
+`{"hasAuthSecret":true}` が返れば、`.dev.vars` が読めています。
 
 **つまずきポイント**
 
 > [!TIP]
 > - **`.dev.vars` は絶対にコミットしないでください。** [1.8](01_setup.md#18-リポジトリと-workspace-を作る) で `.gitignore` に追加済みですが、`git status` で確認する習慣を付けてください
-> - **Cloudflare Workers では `process.env` が使えません。** Node.js の常識が通用しない箇所です
+> - **環境変数は `process.env` ではなく `c.env` から読みます。** Workers の設定によっては `process.env` も使えますが、**D1 のようなバインディングは `c.env` からしか取れません。** 読み方を1つに統一しておくほうが混乱しません
 > - **`wrangler.jsonc` を変更したら `cf-typegen` を実行し直してください。** [3.6](#36-drizzle--d1-で-posts-テーブルを作る) で D1 のバインディングを足したときに `c.env.DB` が型エラーになりますが、原因はこれです
 > - 生成された `worker-configuration.d.ts` はコミットして構いません。ただし手で編集しても次の生成で消えます
 > - 誤ってコミットしてしまった場合、履歴から消しても流出したものとして扱い、値をローテーションしてください
@@ -204,6 +301,23 @@ interface __BaseEnv_CloudflareBindings {
 ## 3.6 Drizzle + D1 で `posts` テーブルを作る
 
 Drizzle は TypeScript で書ける ORM です。スキーマを TypeScript のコードとして定義し、そこからマイグレーションと型を生成します。D1 は Cloudflare が提供する SQLite ベースのデータベースです。
+
+**用語**
+
+| 用語 | 意味 | この章での例 |
+|---|---|---|
+| テーブル | 表。行と列でできている | `posts`、`user` |
+| 行 (レコード) | 表の1行。1件のデータ | 1つのメモ |
+| 列 (カラム) | 表の1列。各行が持つ項目 | `title`、`content` |
+| 主キー | その行を一意に決める列。重複できない | `posts.id` |
+| 外部キー | 別のテーブルの主キーを指す列 | `posts.user_id` は `user.id` を指す |
+| スキーマ | どんなテーブルがどんな列を持つか、という定義 | `src/db/schema.ts` |
+| マイグレーション | スキーマの変更を、データベースに適用するための手順書 | `drizzle/0000_init_posts.sql` |
+| ORM | テーブルの操作を、SQL ではなくコードで書けるようにする道具 | Drizzle |
+
+**スキーマを書くこととテーブルを作ることは、別の工程です。** `schema.ts` を書いただけではデータベースは変わりません。そこから**マイグレーション（SQL のファイル）を生成し、それをデータベースに適用**して、初めてテーブルができます。2段階になっているのは、**本番のデータベースにも同じ変更を、同じ順序で適用できるようにする**ためです。
+
+**外部キーが防ぐのは、宙に浮いた行です。** `posts.user_id` に存在しないユーザーの id を入れようとすると、データベースが拒否します。
 
 **テーブル定義**
 
@@ -299,26 +413,45 @@ export default defineConfig({
 })
 ```
 
-スキーマから SQL を生成します。`apps/api` で実行してください。
+**スクリプトを足す**
 
-```bash
-npx drizzle-kit generate --name init_posts
+これ以降、データベースの操作を何度も行います。`apps/api/package.json` の `scripts` に登録しておきます。**登録しておけば、どのディレクトリにいてもリポジトリのルートから `-w apps/api` を付けて実行できます。**
+
+```json
+{
+  "scripts": {
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
+    "typecheck": "tsc --noEmit"
+  }
+}
 ```
 
-`drizzle/0000_init_posts.sql` が生成されます。**`--name` を付けないと `0000_fixed_the_stranger.sql` のようなランダムな名前になります。** 後から履歴を追うときに困るので、付ける習慣を付けてください。
+`typecheck` も一緒に入れています。[2.10](02_frontend.md#210-oxlint--oxfmt-のセットアップ) でフロント側に入れたものと同じ役割で、[5.2](05_deploy.md#52-github-actions-を構築する) の CI から実行します。
+
+**マイグレーションを作って適用する**
+
+スキーマから SQL を生成します。
+
+```bash
+npm run db:generate -w apps/api -- --name init_posts
+```
+
+`apps/api/drizzle/0000_init_posts.sql` が生成されます。**`--name` を付けないと `0000_fixed_the_stranger.sql` のようなランダムな名前になります。** 後から履歴を追うときに困るので、付ける習慣を付けてください。
 
 生成された SQL をローカルの D1 に適用します。
 
 ```bash
-npx wrangler d1 migrations apply DB --local
+npm run db:migrate:local -w apps/api
 ```
 
-本番に適用するときは `--local` を `--remote` に変えます（[5章](05_deploy.md)）。
+本番に適用するときは `db:migrate:remote` を使います（[5章](05_deploy.md)）。
 
 **確認**
 
 ```bash
-npx wrangler d1 execute DB --local --command "SELECT name FROM sqlite_master WHERE type='table'"
+npx wrangler d1 execute DB --local --command "SELECT name FROM sqlite_master WHERE type='table'" --cwd apps/api
 ```
 
 `posts` が含まれていれば成功です。
@@ -343,11 +476,17 @@ const file = readdirSync(stateDir).find(
   (name) => name.endsWith('.sqlite') && name !== 'metadata.sqlite',
 )
 
+if (file === undefined) {
+  throw new Error(
+    'ローカルの D1 が見つかりません。先に `npm run db:migrate:local -w apps/api` を実行してください',
+  )
+}
+
 export default defineConfig({
   dialect: 'sqlite',
   schema: ['./src/db/schema.ts', './src/db/auth-schema.ts'],
   out: './drizzle',
-  dbCredentials: { url: join(stateDir, file!) },
+  dbCredentials: { url: join(stateDir, file) },
 })
 ```
 
@@ -363,7 +502,7 @@ export default defineConfig({
 
 **足さないと、`npm run typecheck -w apps/api` だけが `Cannot find name 'node:fs'` で落ちます。** 開発サーバーもテストも動くので気づきにくい箇所です。
 
-`npx drizzle-kit studio --config drizzle-studio.config.ts` で起動します。
+`package.json` に `"db:studio": "drizzle-kit studio --config drizzle-studio.config.ts"` を足し、`npm run db:studio -w apps/api` で起動します。
 
 ローカルの D1 に `posts` テーブルが作られ、`wrangler d1 execute` で確認できれば成功です。
 
@@ -411,11 +550,18 @@ const postInput = z.object({
   isPublic: z.boolean().optional(),
 })
 
-const app = new Hono().post('/posts', zValidator('json', postInput), async (c) => {
-  const input = c.req.valid('json')
-  // input は { title: string; content: string; isPublic?: boolean } として型が付く
-})
+// 3.3 で作った app に、チェーンで足していきます
+const app = new Hono()
+  .get('/health', (c) => c.json({ status: 'ok' }))
+
+  .post('/posts', zValidator('json', postInput), async (c) => {
+    const input = c.req.valid('json')
+    // input は { title: string; content: string; isPublic?: boolean } として型が付く
+    return c.json(input, 201)
+  })
 ```
+
+**`const app` を2回書かないでください。** [3.3](#33-最初のエンドポイント-health) で宣言済みなので、そこに `.post(...)` を繋げます。
 
 `zValidator` の第1引数は検証する場所です。`'json'` のほか `'query'`、`'param'`、`'header'`、`'form'` を指定できます。
 
@@ -437,10 +583,10 @@ const app = new Hono().post('/posts', zValidator('json', postInput), async (c) =
 
 `message` が文字列化された JSON になっている点に注意してください。読みやすい形で返したい場合は、`zValidator` の第3引数にハンドラを渡して自分で整形します。この記事では既定のまま進めます。
 
-不正な形式のリクエストを送って、400 とエラー内容が返れば成功です。
+不正な形式のリクエストを送って、`HTTP/1.1 400 Bad Request` とエラーの内容が返れば成功です。
 
 ```bash
-curl -X POST http://localhost:8787/posts -H 'Content-Type: application/json' -d '{"title":"","content":"x"}'
+curl -i -X POST http://localhost:8787/posts -H 'Content-Type: application/json' -d '{"title":"","content":"x"}'
 ```
 
 ## 3.8 `posts` の CRUD エンドポイント
@@ -459,14 +605,160 @@ curl -X POST http://localhost:8787/posts -H 'Content-Type: application/json' -d 
 
 この節では認証をまだ実装していないため、**まず認証なしで全件を返す形で実装し、[3.10](#310-better-auth-を導入しposts-をユーザーに紐づける) で認証と認可を被せます。**
 
-**扱うこと**
+`posts` テーブルの `user_id` は `NOT NULL` なので、この段階では仮の値を入れておきます。
 
-- Drizzle によるクエリの書き方
-- 存在しない id を指定されたときの 404
-- ステータスコードの選び方（201、204 など）
-- エラーハンドリングの共通化
+```ts
+// 3.10 で認証を入れるまでの仮の値
+const CURRENT_USER_ID = 'local-user'
+```
 
-`curl` で5つのエンドポイントをすべて叩き、期待どおりに動けば成功です。
+**先に `async` / `await` について**
+
+ここからのコードには `async` と `await` が出てきます。**データベースへの問い合わせは、結果が返るまで時間がかかる**ためです。
+
+```ts
+const rows = await db.select().from(posts).all()
+```
+
+`await` は「この行の結果が出るまで待ってから、次に進む」という意味です。`await` を書ける関数には `async` を付けます。**`await` を忘れると、データの代わりに「いずれ結果が入る箱」（Promise）がそのまま入り**、`c.json()` に渡しても中身が出てきません。
+
+いまはこれだけ分かれば進めます。仕組みそのものは [6.1](06_api-integration.md#61-async--await-と-promise) で扱います。
+
+**コード**
+
+`apps/api/src/index.ts` に、[3.3](#33-最初のエンドポイント-health) の `/health` に続けて書いていきます。import はこれだけ必要です。
+
+```ts
+import { zValidator } from '@hono/zod-validator'
+import { desc, eq } from 'drizzle-orm'
+import { drizzle } from 'drizzle-orm/d1'
+import { Hono } from 'hono'
+import { z } from 'zod'
+import { posts } from './db/schema'
+```
+
+```ts
+const app = new Hono<{ Bindings: CloudflareBindings }>()
+  .get('/health', (c) => c.json({ status: 'ok' }))
+
+  .get('/posts', async (c) => {
+    const db = drizzle(c.env.DB)
+    const rows = await db
+      .select()
+      .from(posts)
+      .orderBy(desc(posts.updatedAt))
+      .all()
+
+    return c.json(rows)
+  })
+
+  .post('/posts', zValidator('json', postInput), async (c) => {
+    const input = c.req.valid('json')
+    const db = drizzle(c.env.DB)
+    const now = new Date()
+
+    const row = {
+      id: crypto.randomUUID(),
+      userId: CURRENT_USER_ID,
+      title: input.title,
+      content: input.content,
+      isPublic: input.isPublic ?? false,
+      createdAt: now,
+      updatedAt: now,
+    }
+
+    await db.insert(posts).values(row)
+    return c.json(row, 201)
+  })
+
+  .get('/posts/:id', async (c) => {
+    const db = drizzle(c.env.DB)
+    const row = await db
+      .select()
+      .from(posts)
+      .where(eq(posts.id, c.req.param('id')))
+      .get()
+
+    if (row === undefined) {
+      return c.json({ message: 'Not Found' }, 404)
+    }
+    return c.json(row)
+  })
+
+  .put('/posts/:id', zValidator('json', postInput), async (c) => {
+    const input = c.req.valid('json')
+    const db = drizzle(c.env.DB)
+
+    const updated = await db
+      .update(posts)
+      .set({ ...input, updatedAt: new Date() })
+      .where(eq(posts.id, c.req.param('id')))
+      .returning()
+      .get()
+
+    if (updated === undefined) {
+      return c.json({ message: 'Not Found' }, 404)
+    }
+    return c.json(updated)
+  })
+
+  .delete('/posts/:id', async (c) => {
+    const db = drizzle(c.env.DB)
+
+    const deleted = await db
+      .delete(posts)
+      .where(eq(posts.id, c.req.param('id')))
+      .returning()
+      .get()
+
+    if (deleted === undefined) {
+      return c.json({ message: 'Not Found' }, 404)
+    }
+    return c.body(null, 204)
+  })
+```
+
+**読み方**
+
+| 書き方 | 意味 |
+|---|---|
+| `drizzle(c.env.DB)` | D1 のバインディングから Drizzle のインスタンスを作る。**リクエストごとに作ります** |
+| `.get()` | 結果を**1件**取り出す。無ければ `undefined` |
+| `.all()` | 結果を**配列**で取り出す |
+| `.returning()` | 更新・削除した行そのものを返させる |
+| `c.req.param('id')` | URL の `:id` の部分 |
+
+**`.returning().get()` が `undefined` かどうかで 404 を判定しています。** 「存在するか確認してから更新する」という2段階にせず、**更新して何も返らなければ無かった**とみなす形です。この書き方が [3.10](#310-better-auth-を導入しposts-をユーザーに紐づける) の認可でそのまま効いてきます。条件に「所有者であること」を足すだけで、他人のメモへの更新が自然と 404 になります。
+
+**ステータスコードは、作成が 201、削除が 204 です。** 削除は返す本文が無いので `c.body(null, 204)` を使います。
+
+**動作確認**
+
+```bash
+# 作成（201 と、作られた行が返る）
+curl -i -X POST http://localhost:8787/posts \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"買い物","content":"たまごを買う"}'
+
+# 一覧
+curl http://localhost:8787/posts
+
+# 個別（<id> は上で返ってきた id）
+curl -i http://localhost:8787/posts/<id>
+
+# 更新
+curl -i -X PUT http://localhost:8787/posts/<id> \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"買い物（更新）","content":"たまごと牛乳"}'
+
+# 削除（204 で本文なし）
+curl -i -X DELETE http://localhost:8787/posts/<id>
+
+# 存在しない id は 404
+curl -i http://localhost:8787/posts/does-not-exist
+```
+
+5つのエンドポイントが期待どおりに動き、存在しない id で 404 が返れば成功です。
 
 **つまずきポイント**
 
@@ -478,14 +770,58 @@ curl -X POST http://localhost:8787/posts -H 'Content-Type: application/json' -d 
 
 実装の前に概念を整理します。ここを曖昧にしたまま実装すると、何を作っているのか分からなくなります。
 
-**扱うこと**
+**認証 (Authentication) と認可 (Authorization)**
 
-- **認証 (Authentication)**: 誰であるかを確かめること
-- **認可 (Authorization)**: 何をしてよいかを決めること
-- セッションベースとトークンベースの違い
-- Cookie と `Authorization` ヘッダー
-- パスワードをハッシュ化して保存する理由
-- なぜ認証を自前で実装すべきでないのか
+| | 何を決めるか | 失敗したときの応答 |
+|---|---|---|
+| **認証** | **誰であるか**を確かめる | 401 Unauthorized |
+| **認可** | その人が**何をしてよいか**を決める | 403 Forbidden、または 404 |
+
+「ログインできるか」が認証、「他人のメモを消せるか」が認可です。**2つは別の問題で、実装する場所も違います。** 認証は入り口で一度だけ、認可は操作のたびに判断します。
+
+**ログイン状態をどう覚えるか**
+
+**混同しやすい2つの軸があります。** どちらを選ぶかは別々に決まります。
+
+| 軸 | 選択肢 |
+|---|---|
+| **サーバーが状態を持つか** | セッションを保存する（消せば即座に無効） / 持たない（JWT のように、トークン自体に情報を入れる） |
+| **どうやって運ぶか** | Cookie / `Authorization` ヘッダー |
+
+**この記事は「サーバーに保存したセッションを、`Authorization` ヘッダーで運ぶ」構成です。** Better Auth がセッションを `session` テーブルに保存し、リクエストのたびに照合します。**ログアウトすればサーバー側で無効にできます。**
+
+ヘッダーで運ぶのは、フロントエンドと API を別のドメインにデプロイするためです。Cookie を使うとクロスドメインの設定が増えます。この判断が効いてくるのは [6.2](06_api-integration.md#62-cors) の CORS と [6.6](06_api-integration.md#66-認証情報の受け渡し) です。
+
+送り方はこうなります。
+
+```
+Authorization: Bearer <トークン>
+```
+
+`Bearer`（持参人）は「このトークンを持っている人を、その本人として扱う」という意味です。**裏を返せば、盗まれた時点で本人になりすませます。** トークンをどこに保存するかが問題になるのはこのためで、[6.6](06_api-integration.md#66-認証情報の受け渡し) で改めて扱います。
+
+**パスワードは元に戻せない形で保存する**
+
+パスワードはそのまま保存しません。**ハッシュ化**という、元に戻せない変換をかけた結果を保存します。
+
+- ログイン時は、送られてきたパスワードを同じ手順で変換し、保存してある値と一致するかを見る
+- データベースが漏れても、そこからパスワードは復元できない
+
+**「復元できない」ことが要件です。** 暗号化（鍵があれば戻せる）ではなく、ハッシュ化を使うのはそのためです。加えて、利用者ごとに異なる値（ソルト）を混ぜ、意図的に時間のかかる計算を使います。総当たりを現実的でなくするためです。
+
+**認証を自分で実装しない**
+
+上に書いたことは、認証の入り口にすぎません。実際にはこれだけの要素があります。
+
+- パスワードのハッシュ化と、その手法の選定・更新
+- セッションやトークンの発行・失効・有効期限
+- 総当たり攻撃への対策
+- メールアドレスの確認、パスワードの再設定
+- ソーシャルログイン、二要素認証
+
+**どれも「動いているように見えるが安全ではない」状態になりやすい領域です。** しかも間違いはテストで見つかりにくく、漏れたときの被害が大きい。**認証は、実績のあるライブラリに任せるのが定石です。** この記事では [3.10](#310-better-auth-を導入しposts-をユーザーに紐づける) で Better Auth を使います。
+
+一方、**認可は自分で書く必要があります。** 「誰がどのメモを見てよいか」はアプリごとの仕様で、ライブラリが決められないためです。
 
 **このアプリの認可ルール**
 
@@ -515,7 +851,7 @@ Better Auth が生成する内部 ID とは別に、URL で使う識別子を持
 | 項目 | 仕様 |
 |---|---|
 | ユーザー ID | サインアップ時に**入力させる**。**変更不可** |
-| 形式 | 英数字とハイフンのみ、長さ制限あり |
+| 形式 | 英小文字・数字・ハイフンのみ、長さ制限あり |
 | 予約語 | `public`、`posts`、`users`、`api`、`health` などを除外 |
 | 表示名 `name` | 別カラムとして持つ。変更可能。日本語も可 |
 
@@ -541,11 +877,49 @@ Better Auth が生成する内部 ID とは別に、URL で使う識別子を持
 - 認証ミドルウェア（必須・任意の2種類）
 - `posts` の各エンドポイントに認可を適用する
 
+**認可の確認**
+
+**2人分のユーザーを作らないと、認可は確認できません。** サインアップのレスポンスヘッダー `set-auth-token` に入っているトークンを、それぞれ控えてください（`curl -i` で見えます）。
+
+```bash
+ALICE=<alice のトークン>
+BOB=<bob のトークン>
+
+# alice が非公開メモを作る（201。返ってきた id を控える）
+curl -i -X POST http://localhost:8787/posts \
+  -H "Authorization: Bearer $ALICE" \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"alice の秘密","content":"ひみつ"}'
+
+ID=<上で返ってきた id>
+
+# トークンなし → 401
+curl -i http://localhost:8787/posts
+
+# alice 自身 → 200
+curl -i http://localhost:8787/posts/$ID -H "Authorization: Bearer $ALICE"
+
+# bob からの取得 → 404（403 ではない）
+curl -i http://localhost:8787/posts/$ID -H "Authorization: Bearer $BOB"
+
+# bob からの更新 → 404
+curl -i -X PUT http://localhost:8787/posts/$ID \
+  -H "Authorization: Bearer $BOB" \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"乗っ取り","content":"書き換え"}'
+
+# bob からの削除 → 404
+curl -i -X DELETE http://localhost:8787/posts/$ID -H "Authorization: Bearer $BOB"
+
+# 未ログインで公開メモを取得 → 200（isPublic: true のメモで試す）
+curl -i http://localhost:8787/posts/<公開メモの id>
+```
+
 次の4つが確認できれば成功です。
 
 - サインアップとログインができ、トークンが取得できる
 - トークンなしで `GET /posts` にアクセスすると 401 が返る
-- 他人の非公開メモは取得も更新も削除もできない
+- 他人の非公開メモは取得も更新も削除もできない（**すべて 404**）
 - 他人の公開メモは、未ログインでも `GET /posts/:id` で取得できる
 
 **つまずきポイント**
@@ -642,6 +1016,31 @@ export const auth = betterAuth({
 
 ユーザー ID の検証は `databaseHooks.user.create.before` で行います。ここで `APIError` を投げると、サインアップが 400 で止まります。
 
+**作成時だけでなく、更新も塞ぐ必要があります。** `input: true` は「利用者が値を入れられる」という指定で、**サインアップ時だけでなく更新時にも効きます。** そのままにすると、`POST /auth/update-user` から `userId` を変えられます。表示名 `name` は変更できてよいので、`userId` だけを拒否します。
+
+```ts
+databaseHooks: {
+  user: {
+    create: { /* 上のとおり */ },
+
+    // userId は URL に出るため変更させない。
+    // input: true は更新時の入力も許可するので、ここで塞がないと
+    // /auth/update-user から予約語や不正な形式に変えられてしまう
+    update: {
+      before: async (user: Record<string, unknown>) => {
+        if ('userId' in user) {
+          throw new APIError('BAD_REQUEST', {
+            message: 'ユーザー ID は変更できません',
+          })
+        }
+      },
+    },
+  },
+},
+```
+
+**これを入れないと、[7.4](07_features.md#74-ユーザーページ-usersuserid) で公開する `/users/:userId` の URL が壊れます。** さらに、更新の経路には作成時の検証（予約語の除外、英小文字のみ）が効かないため、`public` や `Akira` のような値にも変えられてしまいます。
+
 **テーブルを作る**
 
 Better Auth の CLI で、Drizzle のスキーマを生成します。
@@ -649,6 +1048,13 @@ Better Auth の CLI で、Drizzle のスキーマを生成します。
 ```bash
 cd apps/api
 npx auth@latest generate --output src/db/auth-schema.ts -y
+cd ../..
+```
+
+**このコマンドは `auth.ts` を読み込んで動きます。** 上の `auth.ts` は `./db/auth-schema` を import しているので、**生成前は import 先が存在せず、CLI が設定を読めません。** 先に空のファイルを作っておいてください（生成時に上書きされます）。
+
+```bash
+touch apps/api/src/db/auth-schema.ts
 ```
 
 `user` / `session` / `account` / `verification` の4テーブルが生成されます。**このファイルは生成物なので、手で編集しないでください。** カラムを足したいときは `auth.ts` の `additionalFields` を書き換えて生成し直します。
@@ -676,8 +1082,8 @@ export const posts = sqliteTable('posts', {
 マイグレーションを生成して適用します。
 
 ```bash
-npx drizzle-kit generate --name add_auth_tables
-npx wrangler d1 migrations apply DB --local
+npm run db:generate -w apps/api -- --name add_auth_tables
+npm run db:migrate:local -w apps/api
 ```
 
 **エンドポイントを生やす**
@@ -756,7 +1162,13 @@ type Env = {
 
 **認可を適用する**
 
-[3.8](#38-posts-の-crud-エンドポイント) で書いた `posts` のエンドポイントに、ミドルウェアと所有者の条件を足します。
+[3.8](#38-posts-の-crud-エンドポイント) で書いた `posts` のエンドポイントに、ミドルウェアと所有者の条件を足します。import が2つ増えます。
+
+```ts
+import { and, desc, eq } from 'drizzle-orm'   // and を追加
+import { createMiddleware } from 'hono/factory'
+```
+
 
 ```ts
 .get('/posts', requireAuth, async (c) => {
@@ -787,6 +1199,40 @@ type Env = {
 
 **「所有者かどうか」を `where` の条件に混ぜているのがポイントです。** 他人のメモを更新しようとすると該当行が0件になり、そのまま 404 になります。「取得してから所有者を比較して 403 を返す」という書き方をしないので、**403 と 404 を書き分けるミスがそもそも起きません。**
 
+削除も同じ形です。**ここを直し忘れると、他人のメモを削除できるままになります。**
+
+```ts
+.delete('/posts/:id', requireAuth, async (c) => {
+  const deleted = await db
+    .delete(posts)
+    .where(
+      and(eq(posts.id, c.req.param('id')), eq(posts.userId, c.get('user')!.id)),
+    )
+    .returning()
+    .get()
+
+  if (deleted === undefined) {
+    return c.json({ message: 'Not Found' }, 404)
+  }
+  return c.body(null, 204)
+})
+```
+
+作成は、**[3.8](#38-posts-の-crud-エンドポイント) で置いた仮の値をログイン中のユーザーに差し替えます。**
+
+```ts
+.post('/posts', requireAuth, zValidator('json', postInput), async (c) => {
+  const row = {
+    id: crypto.randomUUID(),
+    userId: c.get('user')!.id,   // CURRENT_USER_ID から差し替える
+    // 以下は 3.8 と同じ
+  }
+  // ...
+})
+```
+
+**`CURRENT_USER_ID` の定義は削除してください。** 残したまま使うと、`user` テーブルに存在しない id を入れることになり、外部キー制約で失敗します。
+
 閲覧だけは条件が違います（所有者 || 公開）。
 
 ```ts
@@ -812,17 +1258,121 @@ type Env = {
 | GET | `/public/posts` | 全体公開されているメモの一覧 |
 | GET | `/users/:userId/posts` | そのユーザーが公開しているメモの一覧 |
 
-**扱うこと**
+**全体の公開一覧**
 
-- `is_public` が true のものだけを返すクエリ
-- `posts` とユーザーテーブルの join（投稿者の表示名を返すため）
-- 存在しない `userId` を指定されたときの 404
-- ページネーション（またはその必要性の説明）
+```ts
+.get('/public/posts', async (c) => {
+  const db = drizzle(c.env.DB)
+  const rows = await db
+    .select({
+      id: posts.id,
+      title: posts.title,
+      content: posts.content,
+      updatedAt: posts.updatedAt,
+      author: { userId: user.userId, name: user.name },
+    })
+    .from(posts)
+    .innerJoin(user, eq(posts.userId, user.id))
+    .where(eq(posts.isPublic, true))
+    .orderBy(desc(posts.updatedAt))
+    .limit(50)
+    .all()
 
-次の2つが確認できれば成功です。
+  return c.json(rows)
+})
+```
+
+**`select()` に返す列を1つずつ書いているのが、この節でいちばん重要な点です。** [3.8](#38-posts-の-crud-エンドポイント) では `select()` を引数なしで呼び、`posts` の全列を返していました。ここで同じことをすると、`innerJoin` した `user` テーブルの中身、つまり**メールアドレスや認証に関わる情報まで、誰でも読める API から返ってしまいます。**
+
+`author: { userId: user.userId, name: user.name }` のように書くと、レスポンスの中で入れ子のオブジェクトになります。
+
+```json
+[
+  {
+    "id": "...",
+    "title": "公開する日記",
+    "content": "みんなに見せる",
+    "updatedAt": "2026-08-20T12:02:29.498Z",
+    "author": { "userId": "akira", "name": "あきら" }
+  }
+]
+```
+
+**`limit(50)` を付けているのは、このエンドポイントが誰でも叩けるためです。** 件数が増えたときに全件返すと、データベースにも回線にも負荷がかかります。本来はページネーション（続きを取得する仕組み）を用意しますが、この記事では扱わないので上限だけ設けています。
+
+**ユーザーごとの公開一覧**
+
+```ts
+.get('/users/:userId/posts', async (c) => {
+  const db = drizzle(c.env.DB)
+  const author = await db
+    .select({ userId: user.userId, name: user.name, id: user.id })
+    .from(user)
+    .where(eq(user.userId, c.req.param('userId')))
+    .get()
+
+  if (author === undefined) {
+    return c.json({ message: 'Not Found' }, 404)
+  }
+
+  const rows = await db
+    .select({
+      id: posts.id,
+      title: posts.title,
+      content: posts.content,
+      updatedAt: posts.updatedAt,
+    })
+    .from(posts)
+    .where(and(eq(posts.userId, author.id), eq(posts.isPublic, true)))
+    .orderBy(desc(posts.updatedAt))
+    .limit(50)
+    .all()
+
+  return c.json({
+    author: { userId: author.userId, name: author.name },
+    posts: rows,
+  })
+})
+```
+
+**ユーザーを先に引いているのは、2つの id を突き合わせるためです。** URL に出てくる `:userId` は[3.10](#310-better-auth-を導入しposts-をユーザーに紐づける) で読者が決めるユーザー ID（`akira` など）で、`posts.user_id` が指しているのは Better Auth が発行した内部の id です。**まず `user` テーブルから内部の id を引き、それで `posts` を絞ります。**
+
+ユーザーが存在しなければ 404 を返します。**メモが0件のユーザーと、存在しないユーザーは別物です。** 前者は空の一覧、後者は 404 です。
+
+**確認**
+
+[3.10](#310-better-auth-を導入しposts-をユーザーに紐づける) で取得したトークンを使って、公開メモを1件作ってから確認します。
+
+```bash
+TOKEN=<サインアップで返ってきたトークン>
+
+# 公開メモを作る
+curl -i -X POST http://localhost:8787/posts \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"公開する日記","content":"みんなに見せる","isPublic":true}'
+
+# 非公開メモも作っておく（一覧に出ないことの確認用）
+curl -i -X POST http://localhost:8787/posts \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"秘密のメモ","content":"ひみつ"}'
+
+# 認証なしで公開一覧（200。公開メモだけが投稿者名付きで返る）
+curl -i http://localhost:8787/public/posts
+
+# ユーザーごとの公開一覧（200）
+curl -i http://localhost:8787/users/akira/posts
+
+# 存在しないユーザー（404）
+curl -i http://localhost:8787/users/no-such-user/posts
+```
+
+次の3つが確認できれば成功です。
 
 - 認証なしで `/public/posts` を叩くと、公開メモだけが投稿者名付きで返る
-- 非公開メモが1件も含まれていない
+- 非公開メモ（`秘密のメモ`）が1件も含まれていない
+- 存在しないユーザー ID では 404 になる
 
 **つまずきポイント**
 

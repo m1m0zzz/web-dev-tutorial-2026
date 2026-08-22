@@ -27,11 +27,36 @@
 - 「実装の詳細ではなく、ユーザーから見た振る舞いをテストする」という考え方
 - 何をテストして、何をテストしないか
 
+**テストを構成する道具**
+
+初めて見る名前が並ぶので、先に役割を押さえます。
+
+| 名前 | 役割 |
+|---|---|
+| `describe` | テストのグループ。まとまりに名前を付けるだけ |
+| `it` | テスト1件。「〜であること」を書く |
+| `expect(...)` | 期待する結果を書く。`toBe`、`toBeInTheDocument` などと組み合わせる |
+| `render(...)` | コンポーネントをテスト用の DOM に描画する |
+| `screen` | 描画されたものから要素を探す入り口 |
+| `userEvent` | クリックや入力を、利用者の操作として再現する |
+
+**1件のテストは「準備 → 操作 → 確認」の3段階です。** `render` が準備、`userEvent` が操作、`expect` が確認にあたります。
+
+**要素の探し方は3種類あります。**
+
+| 接頭辞 | 意味 | 見つからないとき |
+|---|---|---|
+| `getBy...` | 今あるはずのものを取る | **例外を投げる**（テストが失敗する） |
+| `queryBy...` | **無いこと**を確かめるときに使う | `null` を返す |
+| `findBy...` | あとから現れるものを待つ（非同期） | 待って、それでも無ければ失敗 |
+
+**「消えたこと」を確認するのに `getBy` を使うと、要素を探した時点で例外になります。** 削除のテストでは `queryBy` を使います。
+
 **つまずきポイント**
 
 > [!TIP]
 > - テストしすぎると、リファクタリングのたびにテストが壊れて負担になります。「表示が変わったら壊れるテスト」ではなく「振る舞いが変わったら壊れるテスト」を目指します
-> - `getBy` と `queryBy` と `findBy` の使い分けが分かりにくい箇所です
+> - **CSS のクラス名、状態の持ち方、DOM の入れ子は、直接テストしないでください。** これらは実装の都合で変わります
 
 **セットアップ**
 
@@ -96,33 +121,63 @@ const renderApp = () =>
     </MemoryRouter>,
   )
 
-describe('メモ一覧', () => {
-  it('追加すると一覧に増える', async () => {
-    const user = userEvent.setup()
-    renderApp()
+const addPost = async (title: string, content: string) => {
+  const user = userEvent.setup()
+  if (title !== '') {
+    await user.type(screen.getByPlaceholderText('タイトル'), title)
+  }
+  if (content !== '') {
+    await user.type(screen.getByPlaceholderText('本文'), content)
+  }
+  await user.click(screen.getByRole('button', { name: '追加' }))
+}
 
-    await user.type(screen.getByPlaceholderText('タイトル'), '買い物')
-    await user.type(screen.getByPlaceholderText('本文'), 'たまごを買う')
-    await user.click(screen.getByRole('button', { name: '追加' }))
+describe('メモ一覧', () => {
+  it('最初は空のメッセージが出る', () => {
+    renderApp()
+    expect(screen.getByText('まだメモがありません。')).toBeInTheDocument()
+  })
+
+  it('追加すると一覧に増える', async () => {
+    renderApp()
+    await addPost('買い物', 'たまごを買う')
 
     expect(screen.getByRole('link', { name: '買い物' })).toBeInTheDocument()
   })
 
-  it('タイトルか本文が空のときは追加できない', async () => {
+  it('削除すると一覧から消える', async () => {
     const user = userEvent.setup()
     renderApp()
+    await addPost('買い物', 'たまごを買う')
 
-    await user.type(screen.getByPlaceholderText('タイトル'), 'タイトルだけ')
-    await user.click(screen.getByRole('button', { name: '追加' }))
+    await user.click(screen.getByRole('button', { name: '削除' }))
+
+    expect(
+      screen.queryByRole('link', { name: '買い物' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('タイトルか本文が空のときは追加できない', async () => {
+    renderApp()
+    await addPost('タイトルだけ', '')
 
     expect(screen.getByText('まだメモがありません。')).toBeInTheDocument()
   })
 })
 ```
 
-**`getByRole('button', { name: '追加' })` のように、画面に見えている情報で要素を探しているのがポイントです。** クラス名や `data-testid` ではなく、利用者が見て操作するのと同じ手がかりを使います。こうしておくと、内部構造を変えてもテストは壊れません。
+**`getByRole('button', { name: '追加' })` のように、画面に見えている情報で要素を探しているのがポイントです。** クラス名や `data-testid` ではなく、利用者が見て操作するのと同じ手がかりを使います。**内部の作りを変えてもテストは壊れませんが、ボタンの文言や役割を変えれば壊れます。** それは「利用者から見た振る舞いが変わった」ということなので、壊れてよい失敗です。
 
-`npm test -w apps/web` が通れば成功です。
+**削除のテストだけ `queryByRole` を使っています。** 消えたことを確かめるので、無ければ `null` を返すほうを使います。
+
+**余力があれば、「タイトルが空・本文だけ」のケースも足してみてください。** 上のテストは「本文が空」の側しか確認していないので、逆向きの実装ミスを見逃します。
+
+`npm test -w apps/web` を実行し、**4件すべてが通れば成功です。** 型の確認も一度しておきます。
+
+```bash
+npm test -w apps/web
+npm run typecheck -w apps/web
+```
 
 **追加のつまずきポイント**
 
@@ -174,15 +229,31 @@ API のテストです。Cloudflare Workers の実行環境は Node.js とは異
 npm i -D -w apps/api vitest @cloudflare/vitest-pool-workers
 ```
 
+`apps/api/package.json` にスクリプトを足します。[4.1](#41-フロントエンドのテスト) でフロント側に入れたものと同じです。
+
+```json
+{
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  }
+}
+```
+
 `apps/api/vitest.config.ts` を作ります。
 
 ```ts
 import path from 'node:path'
-import { cloudflareTest, readD1Migrations } from '@cloudflare/vitest-pool-workers'
+import {
+  cloudflareTest,
+  readD1Migrations,
+} from '@cloudflare/vitest-pool-workers'
 import { defineConfig } from 'vitest/config'
 
 // drizzle-kit が生成した SQL を読み、テスト用の D1 に適用できるようにする
-const migrations = await readD1Migrations(path.join(import.meta.dirname, 'drizzle'))
+const migrations = await readD1Migrations(
+  path.join(import.meta.dirname, 'drizzle'),
+)
 
 export default defineConfig({
   plugins: [
@@ -246,6 +317,27 @@ declare global {
 
 `exports.default.fetch()` で、実際に Worker にリクエストを送れます。`exports` は `src/index.ts` の `export default` を指すループバックで、テストと同じコンテキストで動きます。
 
+> [!NOTE]
+> **開発サーバー（`npm run dev`）を起動する必要はありません。** テストはテスト用のランタイムの中で Worker を直接呼びます。D1 もテスト用のものです。あとで出てくる `http://localhost:8787` という URL も、**そのポートに通信するわけではなく**、リクエストのオリジンを指定しているだけです。
+
+まず `apps/api/test/health.test.ts` から。いちばん短い形です。
+
+```ts
+import { exports } from 'cloudflare:workers'
+import { describe, expect, it } from 'vitest'
+
+describe('GET /health', () => {
+  it('200 と { status: "ok" } を返す', async () => {
+    const res = await exports.default.fetch('https://example.com/health')
+
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ status: 'ok' })
+  })
+})
+```
+
+次に `apps/api/test/posts.test.ts` です。**認可のテストは同じ準備を何度も必要とする**ので、先にヘルパーを作ります。
+
 ```ts
 import { env, exports } from 'cloudflare:workers'
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -253,6 +345,48 @@ import { beforeEach, describe, expect, it } from 'vitest'
 // Better Auth は baseURL と一致しないオリジンからのリクエストを拒否する（422）ため、
 // wrangler.jsonc の BETTER_AUTH_URL と同じオリジンで叩く
 const BASE = 'http://localhost:8787'
+
+type User = { token: string; userId: string }
+
+const signUp = async (userId: string): Promise<User> => {
+  const res = await exports.default.fetch(`${BASE}/auth/sign-up/email`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: `${userId}@example.com`,
+      password: 'password1234',
+      name: `${userId} の表示名`,
+      userId,
+    }),
+  })
+  expect(res.status).toBe(200)
+
+  const token = res.headers.get('set-auth-token')
+  expect(token).not.toBeNull()
+  return { token: token!, userId }
+}
+
+const authHeaders = (user: User) => ({
+  Authorization: `Bearer ${user.token}`,
+  'Content-Type': 'application/json',
+})
+
+const createPost = async (user: User, isPublic: boolean) => {
+  const res = await exports.default.fetch(`${BASE}/posts`, {
+    method: 'POST',
+    headers: authHeaders(user),
+    body: JSON.stringify({
+      title: isPublic ? '公開メモ' : '非公開メモ',
+      content: '本文',
+      isPublic,
+    }),
+  })
+  expect(res.status).toBe(201)
+  return (await res.json()) as { id: string }
+}
+
+let alice: User
+let bob: User
 
 // テスト間でデータが残ると、実行順で結果が変わるテストになる。
 // D1 にはインタラクティブなトランザクションが無いので batch() でまとめて消す
@@ -270,33 +404,32 @@ beforeEach(async () => {
 })
 ```
 
-複数ユーザーは、サインアップのエンドポイントを叩くヘルパーで用意します。トークンは [3.10](03_backend.md#310-better-auth-を導入しposts-をユーザーに紐づける) で確認した `set-auth-token` ヘッダーから取り出します。
+**`expect(token).not.toBeNull()` を挟んでいるのが要点です。** この行が無いと、ヘッダーが取れなかったときに**認証のテストが `Bearer null` で失敗し、原因が分からなくなります。** 次の行の `token!` は「null ではない」と TypeScript に伝えるだけで、**実行時には何も確認しません。** 確認するのは `expect` のほうです。
+
+準備ができたら、上の表のケースを1つずつ書いていきます。代表的なものを挙げます。
 
 ```ts
-const signUp = async (userId: string) => {
-  const res = await exports.default.fetch(`${BASE}/auth/sign-up/email`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      email: `${userId}@example.com`,
-      password: 'password1234',
-      name: `${userId} の表示名`,
-      userId,
-    }),
-  })
-  expect(res.status).toBe(200)
-  return { token: res.headers.get('set-auth-token')!, userId }
-}
-```
+it('トークンなしで GET /posts は 401', async () => {
+  const res = await exports.default.fetch(`${BASE}/posts`)
+  expect(res.status).toBe(401)
+})
 
-認可のテストは、この節の中心です。
-
-```ts
 it('他人の非公開メモは 404（403 ではない）', async () => {
   const post = await createPost(alice, false)
 
   const res = await exports.default.fetch(`${BASE}/posts/${post.id}`, {
     headers: { Authorization: `Bearer ${bob.token}` },
+  })
+  expect(res.status).toBe(404)
+})
+
+it('他人のメモは公開でも更新できない', async () => {
+  const post = await createPost(alice, true)
+
+  const res = await exports.default.fetch(`${BASE}/posts/${post.id}`, {
+    method: 'PUT',
+    headers: authHeaders(bob),
+    body: JSON.stringify({ title: '乗っ取り', content: '書き換え' }),
   })
   expect(res.status).toBe(404)
 })
@@ -309,9 +442,16 @@ it('レスポンスにメールアドレスが含まれない', async () => {
 })
 ```
 
-後者は、**レスポンス全体を文字列として見て、含まれてはいけないものが無いことを確認する**書き方です。カラムを1つ追加したときに漏れを検出できます。
+最後のものは、**レスポンス全体を文字列として見て、含まれてはいけないものが無いことを確認する**書き方です。**確認できるのは「テストデータのメールアドレスが混ざっていないこと」だけ**で、これで内部情報の漏れ全般を防げるわけではありません。返すべきキーを明示的に検証するテストと併用します。
 
-`npm test -w apps/api` が通れば成功です。
+**残りのケースも、上の表を見ながら同じ形で書いてください。** 完成形は `chapter-04` にあり、`health.test.ts` が1件、`posts.test.ts` が12件の**合わせて13件**です。
+
+```bash
+npm test -w apps/api
+npm run typecheck -w apps/api
+```
+
+**13件が通り、型検査も通れば成功です。** 型検査を別に実行するのは、上の `tsconfig.json` の `types` を間違えたときに、**テストは通るのに `tsc` だけが落ちる**ことがあるためです。
 
 **追加のつまずきポイント**
 
