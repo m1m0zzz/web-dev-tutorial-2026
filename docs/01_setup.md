@@ -2,6 +2,8 @@
 
 この章では、以降の章で使う開発環境を用意し、[1.8](#18-リポジトリと-workspace-を作る) でアプリのリポジトリを作ります。「任意)」と付いた節は、飛ばしても先に進めます。
 
+**ターミナルの操作に自信がない場合は、先に [1.6](#16-ターミナル操作に慣れる) を読んでください。** この章では最初からコマンドを打つことになります。
+
 ## 1.1 WSL2 (Ubuntu)
 
 Node.js のツールチェーンは Linux 環境を前提に作られているものが多く、Windows ネイティブで動かすとパスの区切り文字や改行コード、シンボリックリンクの扱いで問題が出ます。Linux 環境を Windows 上に用意することで、これらを回避します。
@@ -34,6 +36,12 @@ https://learn.microsoft.com/ja-jp/windows/wsl/setup/environment
 
 VS Code 本体は Windows 側にインストールし、WSL 拡張を通して Linux 側のファイルを編集します。この構成にすると、VS Code の統合ターミナルがそのまま Ubuntu のシェルになり、拡張機能も Linux 側で動きます。
 
+本体の入手先はこちらです。
+
+https://code.visualstudio.com/
+
+WSL 拡張の導入と使い方は公式ドキュメントにあります。
+
 https://code.visualstudio.com/docs/remote/wsl
 
 Ubuntu のターミナルで `code .` を実行すると VS Code が開き、左下に「WSL: Ubuntu」と表示されれば成功です。
@@ -47,7 +55,11 @@ Ubuntu のターミナルで `code .` を実行すると VS Code が開き、左
 
 ## 1.3 nvm
 
-Node.js のバージョンを切り替えるためのツールです。プロジェクトごとに要求される Node.js のバージョンは異なり、複数のプロジェクトを並行して触ると必ず衝突します。nvm を入れておくと、ディレクトリを移動するだけで適切なバージョンに切り替わる状態を作れます。
+**Node.js は、ブラウザの外で JavaScript を動かすための実行環境です。** JavaScript はもともとブラウザ用の言語でしたが、Node.js によってサーバーやコマンドラインツールも JavaScript で書けるようになりました。この記事で使う開発サーバー、ビルドツール、テストランナーは、すべて Node.js の上で動きます。
+
+**npm は Node.js に同梱されているパッケージマネージャです。** 他人が公開したライブラリを取り込み、その一覧を `package.json` に記録します。以降 `npm` で始まるコマンドを何度も打ちますが、やっていることはたいてい「依存を入れる」か「`package.json` に書いたスクリプトを実行する」かのどちらかです。
+
+**nvm は、その Node.js のバージョンを切り替えるためのツールです。** プロジェクトごとに要求される Node.js のバージョンは異なり、複数のプロジェクトを並行して触ると必ず衝突します。nvm を入れておくと、ディレクトリを移動するだけで適切なバージョンに切り替わる状態を作れます。
 
 https://github.com/nvm-sh/nvm#install--update-script
 
@@ -79,7 +91,7 @@ nvm alias default 'lts/*'
 
 > [!TIP]
 > - `lts/*` のクォートは必要です。付けないとシェルがワイルドカードとして解釈します
-> - `nvm alias default` を設定しないと、新しいターミナルを開くたびに `node: command not found` になります
+> - **`nvm alias default` は、初回インストールなら省略しても動きます。** nvm は default が未設定のときに、インストールしたバージョンを自動で default にするためです（`Creating default alias: ...` と表示されます）。それでも明示するのは、**特定のバージョンではなく「その時点の LTS」を指させる**ためです。こうしておくと、あとで新しい LTS を入れたときに default が自動で追従します
 
 ### `cd` したときに自動でバージョンを切り替える
 
@@ -87,9 +99,11 @@ nvm alias default 'lts/*'
 
 https://github.com/nvm-sh/nvm#bash
 
-上記リンク先にある `cdnvm` 関数を `$HOME/.bashrc` の末尾に貼り付けます。
+上記リンク先の「Automatically call `nvm use`」にある bash 向けのコードを、`$HOME/.bashrc` の末尾に貼り付けます。ファイルは `code ~/.bashrc` で開けます。
 
-貼り付けたらターミナルを開き直し、次の手順で動作を確認します。
+**コピーする範囲は `cdnvm() {` から、最後の `cdnvm "$PWD" || exit` までです。** 関数だけを貼って末尾の `alias cd='cdnvm'` を落とすと、`cd` が置き換わらないため何も起こりません。
+
+貼り付けたら `source ~/.bashrc` を実行するかターミナルを開き直し、次の手順で動作を確認します。
 
 ```bash
 mkdir -p ~/nvmrc-test && cd ~/nvmrc-test
@@ -98,7 +112,7 @@ cd ..
 cd nvmrc-test   # ここで "Now using node ..." と表示されれば成功
 ```
 
-確認できたら `cd ~ && rm -rf ~/nvmrc-test` で片付けてください。
+確認できたら `cd ~ && rm -rf ~/nvmrc-test` で片付けてください。**`rm -rf` は確認なしに消します。** パスを2回読んでから実行してください（[1.6](#16-ターミナル操作に慣れる)）。
 
 **つまずきポイント**
 
@@ -123,12 +137,12 @@ npm のエコシステムでは、この攻撃が繰り返し発生していま�
 
 被害の範囲は、直接依存しているパッケージだけではありません。依存の依存、そのまた依存まで含めた全体（依存ツリー）のどこか1つが侵害されれば成立します。中規模のプロジェクトでも依存ツリーには数百から千を超えるパッケージが含まれるため、すべてを人力で監査することは現実的ではありません。
 
-XSS に対するエスケープや SQL インジェクションに対するプレースホルダのような、決定版と言える対策は今のところ存在しません。現実的なのは多層防御です。
+**1つ設定すれば防げる、という決定版の対策は今のところありません。** 現実的なのは、効き方の違う対策を重ねること（多層防御）です。
 
 - **インストール時にマルウェアを検知してブロックする**（この節で導入する safe-chain がこれにあたります）
 - **公開直後のバージョンを避ける**（悪意あるバージョンは公開後まもなく検知・削除されることが多いため、一定時間待つだけでかなり避けられます）
-- **ロックファイルをコミットし、CI では `npm ci` を使う**（意図しないバージョンへの更新を防ぐ）
-- **`npm audit` などで既知の脆弱性を定期的に確認する**（マルウェアではなく脆弱性向けですが、別の層として有効です）
+- **ロックファイルをコミットし、CI では `npm ci` を使う**（意図しないバージョンへの更新を防ぐ）。ロックファイルとは `package-lock.json` のことで、**実際に入ったバージョンを1つ残らず記録したファイル**です。[2.1](02_frontend.md#21-npm-create-vitelatest) で最初の `npm install` を実行すると作られます
+- **`npm audit` などで既知の脆弱性を定期的に確認する**（マルウェアではなく脆弱性向けですが、別の層として有効です）。**この記事では扱いません**が、`npm audit` は追加のインストールなしに実行できます
 
 なお、これは「対策すれば安全」という話ではなく「被害の確率を下げる」話です。この点は [6.6](06_api-integration.md#66-認証情報の受け渡し) で認証トークンを localStorage に保存する際にもう一度触れます。
 
@@ -141,6 +155,15 @@ npm config set min-release-age 3
 ```
 
 ホームディレクトリの `~/.npmrc` に `min-release-age=3` と書かれます。**公開から3日経っていないバージョンを、依存の解決対象から外す**設定です。上に挙げた「公開直後のバージョンを避ける」を、npm 自身の機能で行うことになります。
+
+`npm config get min-release-age` が `3` を返せば設定できています。
+
+**これはユーザー全体の設定なので、この記事以外のプロジェクトにも効きます。** 公開直後のバージョンしか条件を満たさない場面（急いで出た修正版を入れたいときなど）では、かえって邪魔になります。そのときは次のどちらかで回避します。
+
+```bash
+npm install <パッケージ名> --min-release-age 0   # その1回だけ無視する
+npm config delete min-release-age                # 設定そのものを消す
+```
 
 効いていることは、選ばれるバージョンで分かります。以下は執筆時点で `vite` の `^8.2.0` を解決させた結果です。
 
@@ -166,6 +189,8 @@ safe-chain は Aikido Security が提供する OSS の CLI ツールで、`npm` 
 
 https://github.com/AikidoSec/safe-chain#installation
 
+**インストールは、配布されているシェルスクリプトを取得して実行する形です。** サプライチェーン攻撃を扱う節でこれをやるのは落ち着かないところですが、**取得元が公式のリリースであることを URL で確認したうえで実行してください。** [5.2](05_deploy.md#52-github-actions-を構築する) の CI では、同じスクリプトをバージョン固定の URL から取得し、SHA-256 を照合してから実行しています。中身が差し替わっていないことを機械的に確認する方法です。
+
 インストールしたらターミナルを開き直し、`npm safe-chain-verify` を実行します。`OK: Safe-chain works!` と表示されれば成功です。さらに検証用の
 
 ```bash
@@ -180,7 +205,7 @@ npm install safe-chain-test
 > - **かつては `npm install -g @aikidosec/safe-chain` でインストールする方式でしたが、現在は配布用のインストールスクリプトを使う方式に変わっています。** 古い記事を参考にしないでください
 > - インストール後は必ずターミナルを開き直してください。パッケージマネージャのコマンドを差し替えるエイリアスが、再起動しないと読み込まれません
 > - **既定では、公開から48時間が経過していないバージョンはインストール対象から外されます。** [2章](02_frontend.md)以降で「最新版のはずなのに1つ前のバージョンが入る」ことがありますが、これは異常ではなく意図された挙動です。`--safe-chain-minimum-package-age-hours` で変更できます
-> - **`min-release-age` と役割が重なりますが、効くタイミングが違います。** `min-release-age` はバージョンを選ぶとき（`npm install`）に働き、safe-chain は**ダウンロードそのもの**を止めます。ロックファイルに公開直後のバージョンが入っていると、`npm ci` は npm 側を素通りして safe-chain に弾かれます
+> - **`min-release-age` と safe-chain は、公開時刻での絞り込みが重なります。** `npm install` では両方がバージョンの候補を絞ります（safe-chain は `Some package versions were suppressed during package metadata resolution due to minimum package age` と表示します）。**違うのは、safe-chain がそれに加えてダウンロードそのものも止めることです。** ロックファイルに公開直後のバージョンが入っていると、`npm ci` は npm 側の設定を素通りして safe-chain に弾かれます
 > - `.bashrc` への追記が nvm のものと並ぶことになります。動作がおかしい場合は、両者の記述順を確認してください
 
 ## 1.5 gh (GitHub CLI)
@@ -206,24 +231,30 @@ gh auth login
 
 `gh auth status` がログイン済みのアカウント名を表示すれば成功です。
 
+**コミットに使う名前とメールアドレスを設定する**
+
+**`gh auth login` は、Git のユーザー名とメールアドレスまでは設定しません。** これは別に必要で、**設定しないと [1.8](#18-リポジトリと-workspace-を作る) の最初のコミットが `Author identity unknown` で失敗します。** Windows 側で設定していても、WSL の中には引き継がれません。
+
+```bash
+git config --global user.name "Your Name"
+git config --global user.email "you@example.com"
+```
+
+`git config --global --get user.email` が、設定した値を返せば成功です。
+
+**この値はコミットに記録され、Public リポジトリなら誰でも見られます。** メールアドレスを公開したくない場合は、GitHub が発行する `noreply` アドレスを使えます。
+
+https://docs.github.com/ja/account-and-profile/setting-up-and-managing-your-personal-account-on-github/managing-email-preferences/setting-your-commit-email-address
+
 **つまずきポイント**
 
 > [!TIP]
-> - **`gh auth login` は Git のユーザー名とメールアドレスを設定しません。** これは別途必要です。設定しないと最初のコミットで失敗します
->
->   ```bash
->   git config --global user.name "Your Name"
->   git config --global user.email "you@example.com"
->   ```
->
->   メールアドレスを公開したくない場合は、GitHub が提供する `noreply` アドレスを使えます: https://docs.github.com/ja/account-and-profile/setting-up-and-managing-your-personal-account-on-github/managing-email-preferences/setting-your-commit-email-address
->
 > - Ubuntu には `git` が入っていない場合があります。`git --version` で確認し、無ければ `sudo apt install git` を実行してください
 > - ブラウザ認証では WSL 内から Windows 側のブラウザが開きます。開かない場合は表示される URL を手動でコピーしてください
 
 ## 1.6 ターミナル操作に慣れる
 
-以降の章はすべてターミナル上で進みます。**以下のコマンドは、この先で説明なしに使います。** 初めて見るものがあれば、ここで一度手を動かしてから進んでください。
+以降の章の作業は、ほとんどがターミナル上で進みます。**以下のコマンドは、この先で説明なしに使います。** 初めて見るものがあれば、ここで一度手を動かしてから進んでください。
 
 | コマンド | 用途 |
 |---|---|
@@ -234,7 +265,15 @@ gh auth login
 | `rm` / `rm -rf` | 削除する |
 | `cp` / `mv` | コピー / 移動・リネーム |
 | `cat` / `less` | ファイルの内容を見る |
-| `chmod` | 実行権限などを変更する |
+
+記法もいくつか使います。
+
+| 記法 | 意味 | 例 |
+|---|---|---|
+| `~` | 自分のホームディレクトリ | `cd ~` |
+| `&&` | 前のコマンドが成功したら次を実行する | `cd .. && ls` |
+| `>` | コマンドの出力をファイルに書く（**上書きされます**） | `echo "24" > .nvmrc` |
+| `$(...)` | 中のコマンドの実行結果をその場に埋め込む | `cd $(ghq root)` |
 
 `pwd` で今いる場所が分かり、`ls -a` で隠しファイルまで見え、`cd` で目的のディレクトリに移動できれば十分です。
 
@@ -299,6 +338,31 @@ cd $(ghq root)/github.com/<ユーザー名>/memo-app
 > - **クローン先は Linux 側（`~/` 配下）にしてください。** `/mnt/c/` 配下に置くとファイルアクセスが極端に遅くなります（[1.1](#11-wsl2-ubuntu) 参照）
 > - [1.5](#15-gh-github-cli) で `gh auth login` を済ませていれば、HTTPS でのクローンとプッシュに認証情報の入力は不要です。求められる場合は `gh auth status` で認証状態を確認してください
 > - Visibility を Private にしていますが、これは後述する `package.json` の `"private": true` とは無関係の設定です。前者は「GitHub 上で他人から見えるか」、後者は「npm に公開できるか」の話です
+
+### 参照用リポジトリを登録する
+
+このチュートリアルの完成コードを、`tutorial` という名前で登録しておきます。**詰まったときに、自分のコードと完成形の差分をその場で見られるようにするため**です（[0章](00_introduction.md#進め方)）。
+
+```bash
+git remote add -t 'chapter-*' -t main tutorial https://github.com/m1m0zzz/web-dev-tutorial-2026.git
+git fetch tutorial
+```
+
+`git branch -r` に `tutorial/chapter-01` 〜 `tutorial/chapter-08` と `tutorial/main` が並べば成功です。使うのは、詰まったときと答え合わせのときです。
+
+```bash
+git diff tutorial/chapter-04 -- apps/api/src          # 4章の完成形との差分
+git show tutorial/chapter-04:apps/api/src/index.ts    # 完成形をそのまま読む
+git show tutorial/main:docs/03_backend.md             # 記事そのものを手元で読む
+```
+
+**つまずきポイント**
+
+> [!TIP]
+> - **`-t 'chapter-*' -t main` は、取ってくるブランチを絞る指定です。** 付けないと、依存を自動更新する仕組み（Renovate）の作業ブランチまで手元に来ます
+> - **`git push` の宛先は `origin`（自分のリポジトリ）のままです。** `tutorial` には書き込み権限がないので、誤って push しても失敗するだけです
+> - `git branch` の表示は変わりません。増えるのは `git branch -r`（リモート追跡ブランチの一覧）だけです
+> - ここで登録しなくても、あとから同じコマンドを実行すれば足せます
 
 ### `.nvmrc` を作る
 
@@ -366,7 +430,9 @@ npm init -y
 }
 ```
 
-**`"private": true` は必須です。** これが無いと `npm publish` を誤って実行でき、Private リポジトリのコードが npm に公開されてしまいます。また npm workspaces はルートパッケージが private であることを前提としています。
+**`"private": true` を付けます。** これが無いと `npm publish` を誤って実行でき、Private リポジトリのコードが npm に公開されてしまいます。npm workspaces 自体は private でなくても動きますが、**公開する予定のないパッケージには常に付けておくのが安全です。**
+
+**この指定はルートのパッケージにしか効きません。** `apps/web` と `apps/api` にも、それぞれ個別に必要です（[2.1](02_frontend.md#21-npm-create-vitelatest)、[3.2](03_backend.md#32-npm-create-honolatest) で確認します）。
 
 `"workspaces": ["apps/*"]` により、`apps/` 配下の各ディレクトリが1つのパッケージとして扱われます。この記事では `apps/web`（[2章](02_frontend.md)）と `apps/api`（[3章](03_backend.md)）を作ります。
 
@@ -401,7 +467,7 @@ git push
 
 - インストールと認証
 - `AGENTS.md` によるプロジェクト固有の指示
-- 権限設定
+- 権限の扱い方
 
 どちらも WSL のターミナルで実行します（Windows 側ではなく、WSL の中に入れます）。
 
@@ -429,11 +495,40 @@ curl -fsSL https://chatgpt.com/codex/install.sh | sh
 
 どちらもリポジトリのルートに置いた **`AGENTS.md`** を読み、そこに書いた指示に従います。「このプロジェクトではテストを `npm test -w apps/web` で走らせる」といった、毎回説明したくないことをここに書いておきます。
 
+**まず `AGENTS.md` を作ります。** 内容は自分の言葉で構いません。この時点なら、たとえばこの程度です。
+
+```markdown
+# AGENTS.md
+
+Web アプリ開発のチュートリアルを進めるためのリポジトリです。
+
+- 指示は日本語で行います
+- npm workspaces を使っています。`npm install` とスクリプトの実行は、常にリポジトリのルートで行ってください（例: `npm run dev -w apps/web`）
+- 分からないことがあるときは、コードを書き換える前に、まず原因の切り分けを手伝ってください
+```
+
+**中身は、詰まったことがあるたびに足していくものです。** 最初から完璧に書く必要はありません。
+
 Claude Code は歴史的に `CLAUDE.md` という名前を使っており、どちらも読みます。**実体を `AGENTS.md` にして、`CLAUDE.md` はそのシンボリックリンクにしておくと、内容が二重管理になりません。**
 
 ```bash
 ln -s AGENTS.md CLAUDE.md
 ```
+
+**`ln -s` は、リンク先が存在しなくてもエラーになりません。** `AGENTS.md` を作る前に実行すると、どこも指していないリンクだけができます。`cat CLAUDE.md` で `AGENTS.md` の中身が表示されれば成功です。
+
+作ったら2つともコミットしておきます。
+
+```bash
+git add AGENTS.md CLAUDE.md
+git commit -m "chore: add AGENTS.md"
+```
+
+**権限の扱い**
+
+エージェントは、ファイルの書き換えやコマンドの実行を、その都度確認してから行います。**最初のうちは、この確認を省略する設定にしないでください。** 何が起きたか分からないまま、コードが書き換わっている状態になります。
+
+どちらの製品も、変更は Git の作業ツリーに対して行われます。**`git diff` で内容を確認してからコミットする**という手順を挟めば、意図しない変更はコミット前に気づけます。
 
 **つまずきポイント**
 
@@ -442,7 +537,7 @@ ln -s AGENTS.md CLAUDE.md
 > - **Codex は無料プランでも使えます。** 公式のプラン表では ChatGPT Free / Go / Plus / Pro / Business / Edu / Enterprise に含まれるとされています（使用量の上限はプランごとに違います）。API キーで使うこともできます
 > - どちらも初回の実行時にブラウザでのログインを求められます
 > - npm でグローバルインストールする方法もありますが、**`sudo npm install -g` は使わないでください**（権限の問題が起きます）
-> - ネイティブインストーラで入れた場合、更新はバックグラウンドで自動的に行われます
+> - **更新の方法は製品によって違います。** Claude Code のネイティブ版はバックグラウンドで自動更新されます。Codex は公式の手順に従ってください（インストールと同じスクリプトを実行し直す形です）
 > - **生成されたコードをそのままコミットしないでください。** この記事の目的は、動くコードを手に入れることではなく、動かないときに何を見ればいいかが分かるようになることです
 
 **次の章**: [2 React でフロントエンドを作る](02_frontend.md)
