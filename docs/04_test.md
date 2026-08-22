@@ -319,3 +319,5 @@ it('レスポンスにメールアドレスが含まれない', async () => {
 > - **テスト間でストレージは自動ではリセットされません。** 上記のように明示的に消してください。消し忘れると、2つ目以降のテストでサインアップが `USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL`（422）になります（`@cloudflare/vitest-pool-workers` 0.22 で確認。`beforeEach` を外すと12件中11件が落ちました）
 > - **`cloudflare:test` の `SELF` と `env` は非推奨です。** 0.22 の型定義に `@deprecated` が付いており、それぞれ `cloudflare:workers` の `exports.default` と `env` に置き換わりました。古い記事やサンプルは `SELF` のままなので、読み替えてください。`applyD1Migrations` は引き続き `cloudflare:test` から import します
 > - **リクエストのオリジンは `BETTER_AUTH_URL` と揃えてください。** `https://example.com` のような別オリジンから叩くと、Better Auth が 422 を返します
+
+**次の章**: [5 デプロイする](05_deploy.md)
