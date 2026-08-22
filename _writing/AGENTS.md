@@ -112,7 +112,7 @@ echo author > .mode
 参照はファイル間リンクになっています。
 
 ```markdown
-この点は [6.5](06_api-integration.md#65-認証情報の受け渡し) で認証トークンを…
+この点は [6.6](06_api-integration.md#66-認証情報の受け渡し) で認証トークンを…
 ```
 
 アンカーは GitHub の生成規則で作ります。**小文字化 → 単語文字・空白・ハイフン以外を削除 → 空白1つをハイフン1つに置換**。`oxlint / oxfmt` のように、削除された記号の前後に空白が残る見出しは `oxlint--oxfmt` と**ハイフンが2つ**になります。
@@ -121,10 +121,10 @@ echo author > .mode
 
 参照が特に多いのは以下の経路です。
 
-- [1.4](../docs/01_setup.md#14-サプライチェーン攻撃の対策) サプライチェーン攻撃 → [6.5](../docs/06_api-integration.md#65-認証情報の受け渡し) localStorage のリスク
+- [1.4](../docs/01_setup.md#14-サプライチェーン攻撃の対策) サプライチェーン攻撃 → [6.6](../docs/06_api-integration.md#66-認証情報の受け渡し) localStorage のリスク
 - [2.12](../docs/02_frontend.md#212-任意-csr--ssg--ssr--isr) CSR/SSG/SSR/ISR → [7.5](../docs/07_features.md#75-csr-の限界) CSR の限界
-- [3.3](../docs/03_backend.md#33-最初のエンドポイント-health) メソッドチェーン → [6.3](../docs/06_api-integration.md#63-hono-rpc-で型安全に呼ぶ) Hono RPC
-- [3.7](../docs/03_backend.md#37-入力バリデーション) バリデーション → [6.3](../docs/06_api-integration.md#63-hono-rpc-で型安全に呼ぶ) Hono RPC
+- [3.3](../docs/03_backend.md#33-最初のエンドポイント-health) メソッドチェーン → [6.4](../docs/06_api-integration.md#64-hono-rpc-で型安全に呼ぶ) Hono RPC
+- [3.7](../docs/03_backend.md#37-入力バリデーション) バリデーション → [6.4](../docs/06_api-integration.md#64-hono-rpc-で型安全に呼ぶ) Hono RPC
 - [1.8](../docs/01_setup.md#18-リポジトリと-workspace-を作る) `.gitignore` → [3.5](../docs/03_backend.md#35-環境変数とシークレット) 環境変数
 
 ## 章ブランチの運用
