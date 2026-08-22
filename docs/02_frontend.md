@@ -75,7 +75,7 @@ React のコードは、比較的新しい JavaScript の記法を前提に書�
 **扱わないもの**
 
 - クラス構文、`this`、プロトタイプ（このチュートリアルでは登場しません）
-- `async` / `await` と Promise（[6.0](06_api-integration.md#60-async--await-と-promise) で扱います）
+- `async` / `await` と Promise（[6.1](06_api-integration.md#61-async--await-と-promise) で扱います）
 
 網羅的に学びたい場合は MDN を参照してください。
 
@@ -185,7 +185,7 @@ type Props = {
   <PostItem key={post.id} post={post} onDelete={onDelete} />
 ))}
 
-// import type（2.7）— 型だけを import するときの書き方。6.3 で重要になります
+// import type（2.7）— 型だけを import するときの書き方。6.4 で重要になります
 import type { Post } from '../types'
 ```
 
