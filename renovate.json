@@ -1,4 +1,24 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["local>m1m0zzz/renovate-config"]
+  "extends": ["local>m1m0zzz/renovate-config"],
+  "packageRules": [
+    {
+      "description": "記事本文がバージョンを明記しているため、破壊的変更になりうる更新は automerge しない",
+      "matchUpdateTypes": ["major"],
+      "addLabels": ["dependencies:docs"],
+      "prBodyNotes": [
+        "**記事の更新が必要か確認してください。** 0章「動作を確認したバージョン」、該当する章の本文、`_writing/README.md` の「確認済みの事項」にバージョンを書いています。生成物や手順が変わっている場合は、該当章のコミットにも取り込みます（`_writing/README.md` のケース2）。"
+      ]
+    },
+    {
+      "description": "0.x はマイナーでも破壊的変更になりうる（drizzle-orm、oxfmt、vitest-pool-workers など）",
+      "matchUpdateTypes": ["minor"],
+      "matchCurrentVersion": "<1.0.0",
+      "automerge": false,
+      "addLabels": ["dependencies:docs"],
+      "prBodyNotes": [
+        "**0.x のマイナー更新です。** 破壊的変更が含まれることがあり、記事が `Drizzle 0.45` のように書いている番号も変わります。0章と該当章の記述を確認してください。"
+      ]
+    }
+  ]
 }
