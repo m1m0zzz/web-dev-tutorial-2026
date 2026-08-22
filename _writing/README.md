@@ -229,8 +229,8 @@ git rebase --continue
 - 記事の変更がコードに及ぶ場合は、[どのコミットに入れるか](#どのコミットに入れるか)に従う（章のコードを直すならケース2）
 
 - [ ] **[イントロダクション](../docs/00_introduction.md)**
-  - [ ] この記事について
-  - [ ] 目次
+  - [x] この記事について
+  - [x] 目次
 - [ ] **[1 環境構築](../docs/01_setup.md)**
   - [ ] 1.1 WSL2 (Ubuntu)
   - [ ] 1.2 VS Code + WSL 拡張
@@ -303,6 +303,7 @@ git rebase --continue
 | 章 | 確認したこと |
 |---|---|
 | 全体 | 完成コードはこのリポジトリ。章ごとのブランチ（`chapter-01` 〜）を順次追加 |
+| 全体 | この記事の範囲は Cloudflare の無料プランに収まる。Workers 100,000 リクエスト/日、D1 は読み取り 500 万行/日・書き込み 100,000 行/日・容量 5 GB、静的ファイルの配信は無制限（[Workers の料金](https://developers.cloudflare.com/workers/platform/pricing/) / [D1 の料金](https://developers.cloudflare.com/d1/platform/pricing/) で確認） |
 | 2 | Node.js の LTS は 24。`create-vite` 9系の生成物（Vite 8 / React 19 / TS 6、Lint は oxlint） |
 | [2.9](../docs/02_frontend.md#29-react-router-でページを分ける) | React Router v8。モードの呼称（Framework / Data / Declarative）は変わっていない |
 | [2.10](../docs/02_frontend.md#210-任意-oxlint--oxfmt-のセットアップ) | oxlint 1.79 / oxfmt 0.64。`create-vite` が入れるのは oxlint だけで、oxfmt も `oxlint-tsgolint` も入らない。oxlint は既定で `correctness` カテゴリのみ、react プラグインは off。型情報を使うルールには `oxlint-tsgolint` + `--type-aware` が要る。`overrides` の `plugins` は既定のプラグインを置き換えず足し算になる |
