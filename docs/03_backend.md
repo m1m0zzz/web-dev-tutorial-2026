@@ -96,7 +96,7 @@ npm install
 **つまずきポイント**
 
 > [!TIP]
-> - **ルーティングはメソッドチェーンで書いてください。** [6.3](06_api-integration.md#63-hono-rpc-で型安全に呼ぶ) で Hono RPC を使う際、型がハンドラの定義から導出されます。`app.get(...)` と `app.post(...)` を別々の文として書くと型が繋がりません
+> - **ルーティングはメソッドチェーンで書いてください。** [6.4](06_api-integration.md#64-hono-rpc-で型安全に呼ぶ) で Hono RPC を使う際、型がハンドラの定義から導出されます。`app.get(...)` と `app.post(...)` を別々の文として書くと型が繋がりません
 >
 >   ```ts
 >   // これ
@@ -371,7 +371,7 @@ export default defineConfig({
 
 > [!TIP]
 > - **SQLite には boolean 型がありません。** `is_public` は integer の 0 / 1 として保存されます。上記の `{ mode: 'boolean' }` がその変換を担当します
-> - **`Date` は JSON になるとき ISO 文字列になります。** API のレスポンスでは `"2026-08-20T12:02:29.498Z"` の形で返ります。[6.3](06_api-integration.md#63-hono-rpc-で型安全に呼ぶ) で型を共有すると、フロント側の型も `string` になります
+> - **`Date` は JSON になるとき ISO 文字列になります。** API のレスポンスでは `"2026-08-20T12:02:29.498Z"` の形で返ります。[6.4](06_api-integration.md#64-hono-rpc-で型安全に呼ぶ) で型を共有すると、フロント側の型も `string` になります
 > - ローカルの D1 は本番とは別物です。ローカルで入れたデータは本番には反映されません
 > - **SQLite では、後から外部キー制約を足すとテーブルの作り直しになります。** [3.10](#310-better-auth-を導入しposts-をユーザーに紐づける) で `posts.user_id` に制約を足しますが、そのとき既存の行が制約を満たしていないと `FOREIGN KEY constraint failed` でマイグレーションが失敗します。開発中であれば `rm -rf apps/api/.wrangler/state/v3/d1` でローカルのデータベースを消してから適用し直すのが手早いです
 > - **D1 はインタラクティブなトランザクションに対応していません。** 複数の書き込みをまとめたい場合はバッチ処理の API を使います
@@ -380,7 +380,7 @@ export default defineConfig({
 
 クライアントから送られてくるデータが期待した形とは限りません。不正なデータをそのままデータベースに入れると、後続の処理が壊れます。
 
-また、[6.3](06_api-integration.md#63-hono-rpc-で型安全に呼ぶ) で Hono RPC を使う際、**バリデータを通していないとリクエストの型がクライアント側に伝わりません。** RPC の恩恵を受けるためにも必要な工程です。
+また、[6.4](06_api-integration.md#64-hono-rpc-で型安全に呼ぶ) で Hono RPC を使う際、**バリデータを通していないとリクエストの型がクライアント側に伝わりません。** RPC の恩恵を受けるためにも必要な工程です。
 
 **扱うこと**
 
@@ -711,7 +711,7 @@ access-control-expose-headers: set-auth-token
 set-auth-token: g9wZeE98ovAkM2LSq7lkfJ9mfBmAPF6K.E2VrIGBZVz0zYtYsAGwlQRzud00ZsZFBVcIbSr9DelQ=
 ```
 
-これを `Authorization: Bearer <トークン>` として送ると、リクエストの持ち主が分かるようになります。`access-control-expose-headers` が一緒に付いているのは、クロスオリジンではブラウザの JavaScript から読めるヘッダーが制限されるためです（[6.1](06_api-integration.md#61-cors) で扱います）。
+これを `Authorization: Bearer <トークン>` として送ると、リクエストの持ち主が分かるようになります。`access-control-expose-headers` が一緒に付いているのは、クロスオリジンではブラウザの JavaScript から読めるヘッダーが制限されるためです（[6.2](06_api-integration.md#62-cors) で扱います）。
 
 **認証ミドルウェア**
 

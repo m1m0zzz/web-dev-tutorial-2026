@@ -107,10 +107,10 @@ CSR (Client Side Rendering) では、サーバーが返すのは空の HTML と 
 | 変わるもの | 影響 |
 |---|---|
 | ルーティングの書き方 | [2.9](02_frontend.md#29-react-router-でページを分ける) の内容が別物になる |
-| データ取得の仕組み | `loader` / `action` が加わり、React Query との住み分けが必要（[6.4](06_api-integration.md#64-react-query-に載せる)） |
+| データ取得の仕組み | `loader` / `action` が加わり、React Query との住み分けが必要（[6.5](06_api-integration.md#65-react-query-に載せる)） |
 | デプロイ構成 | フロント側もサーバーになる（[5.2](05_deploy.md#52-github-actions-を構築する)） |
-| CORS の前提 | 同一オリジンにできる可能性（[6.1](06_api-integration.md#61-cors)） |
-| 認証トークンの置き場所 | サーバー側から読めない localStorage は見直しが必要（[6.5](06_api-integration.md#65-認証情報の受け渡し)） |
+| CORS の前提 | 同一オリジンにできる可能性（[6.2](06_api-integration.md#62-cors)） |
+| 認証トークンの置き場所 | サーバー側から読めない localStorage は見直しが必要（[6.6](06_api-integration.md#66-認証情報の受け渡し)） |
 
 [2章](02_frontend.md)・[5章](05_deploy.md)・[6章](06_api-integration.md)の判断を同時に覆すことになります。だからこの記事では扱いません。
 

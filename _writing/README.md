@@ -273,13 +273,13 @@ git rebase --continue
   - [ ] 5.1 環境変数・シークレットの置き場所を決める
   - [ ] 5.2 GitHub Actions を構築する
 - [ ] **[6 フロントから API を呼ぶ](../docs/06_api-integration.md)**
-  - [ ] 6.0 `async` / `await` と Promise
-  - [ ] 6.1 CORS
-  - [ ] 6.2 素の fetch で呼ぶ
-  - [ ] 6.3 Hono RPC で型安全に呼ぶ
-  - [ ] 6.4 React Query に載せる
-  - [ ] 6.5 認証情報の受け渡し
-  - [ ] 6.6 環境変数を追加して再デプロイ
+  - [ ] 6.1 `async` / `await` と Promise
+  - [ ] 6.2 CORS
+  - [ ] 6.3 素の fetch で呼ぶ
+  - [ ] 6.4 Hono RPC で型安全に呼ぶ
+  - [ ] 6.5 React Query に載せる
+  - [ ] 6.6 認証情報の受け渡し
+  - [ ] 6.7 環境変数を追加して再デプロイ
 - [ ] **[7 機能を拡張する](../docs/07_features.md)**
   - [ ] 7.1 公開・非公開の切り替え
   - [ ] 7.2 未ログインでも見られるページの土台を作る
@@ -287,7 +287,10 @@ git rebase --continue
   - [ ] 7.4 ユーザーページ `/users/:userId`
   - [ ] 7.5 CSR の限界
 - [ ] **[8 E2E テストを行う](../docs/08_e2e.md)**
-  - [ ] （節に分かれていない。章全体で1つ）
+  - [ ] 8.1 Playwright のセットアップ
+  - [ ] 8.2 2つの開発サーバーとデータベースを用意する
+  - [ ] 8.3 テストを書く
+  - [ ] 8.4 CI で実行する
 - [ ] **[9 任意) 開発環境をさらに整える](../docs/09_devtools.md)**
   - [ ] 9.1 ghq + fzf でリポジトリを移動する
   - [ ] 9.2 herdr
@@ -309,8 +312,8 @@ git rebase --continue
 | [3.7](../docs/03_backend.md#37-入力バリデーション) | `@hono/zod-validator` 0.9 + zod 4 |
 | [3.10](../docs/03_backend.md#310-better-auth-を導入しposts-をユーザーに紐づける) | Better Auth 1.7。D1 の組み込みサポートはあるが、この記事は Drizzle アダプタを使う。`drizzleAdapter` には `schema` を渡す必要がある。トークンは `set-auth-token` ヘッダー |
 | 4 | Vitest 4 + Testing Library 16 / `@cloudflare/vitest-pool-workers` 0.22（`cloudflareTest` プラグイン形式） |
-| [6.3](../docs/06_api-integration.md#63-hono-rpc-で型安全に呼ぶ) | RPC の型共有は `tsconfig` の `paths` だけで足りる（project references 不要） |
-| [6.1](../docs/06_api-integration.md#61-cors) | CORS に加えて Better Auth の `trustedOrigins` が必要 |
+| [6.4](../docs/06_api-integration.md#64-hono-rpc-で型安全に呼ぶ) | RPC の型共有は `tsconfig` の `paths` だけで足りる（project references 不要） |
+| [6.2](../docs/06_api-integration.md#62-cors) | CORS に加えて Better Auth の `trustedOrigins` が必要 |
 | 8 | Playwright 1.62。`webServer` は `globalSetup` より先に起動する |
 
 ### safe-chain の48時間ルールで CI が落ちることがある
@@ -333,7 +336,7 @@ git rebase --continue
 - [3.6](../docs/03_backend.md#36-drizzle--d1-で-posts-テーブルを作る): `wrangler d1 create` の出力
 - [5.1](../docs/05_deploy.md#51-環境変数シークレットの置き場所を決める): API トークンの発行画面と、必要な権限の最小セット
 - [5.2](../docs/05_deploy.md#52-github-actions-を構築する): GitHub Actions が実際に通ること（ワークフローは書いたが、push していない）
-- [6.6](../docs/06_api-integration.md#66-環境変数を追加して再デプロイ): 本番環境での通しの動作確認
+- [6.7](../docs/06_api-integration.md#67-環境変数を追加して再デプロイ): 本番環境での通しの動作確認
 - [7.5](../docs/07_features.md#75-csr-の限界): デプロイしたフロントに `curl` を投げ、初期 HTML に本文が含まれないことの実測
 
 その他:
