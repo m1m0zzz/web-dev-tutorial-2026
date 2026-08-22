@@ -8,16 +8,80 @@
 
 ネットワーク通信は、結果が返ってくるまで時間がかかります。JavaScript ではこれを Promise という仕組みで扱い、`async` / `await` で読みやすく書きます。[2.2](02_frontend.md#22-モダン-javascript-の前提知識) で扱わなかったのは、実際に使う場面がここまで無かったためです。
 
-**扱うこと**
+**同期と非同期**
 
-- 同期処理と非同期処理
-- Promise の3つの状態
-- `async` 関数と `await`
-- `try` / `catch` によるエラー処理
+これまで書いてきたコードは、上から順に1行ずつ実行されていました（同期処理）。ネットワーク通信は違います。**リクエストを送ってから結果が返るまで、数十ミリ秒から数秒かかります。** その間ずっと止まっていると、画面は固まったままになります。
+
+そこで JavaScript は、**「今すぐには結果がないが、いずれ結果が入るもの」**を返します。これが **Promise** です。
+
+**Promise の3つの状態**
+
+| 状態 | 意味 |
+|---|---|
+| pending | まだ結果が出ていない |
+| fulfilled | 成功して値が入った |
+| rejected | 失敗した |
+
+pending から始まり、いずれ fulfilled か rejected のどちらかになります。**一度決まると、もう変わりません。**
+
+**`async` / `await`**
+
+`await` は、**Promise が決着するまでその行で待ち、中身の値を取り出す**書き方です。
+
+```ts
+const res = await fetch('http://localhost:8787/health')
+const data = await res.json()
+console.log(data)   // { status: 'ok' }
+```
+
+`await` を書けるのは `async` を付けた関数の中だけです。
+
+```ts
+const load = async () => {
+  const res = await fetch('http://localhost:8787/posts')
+  const posts = await res.json()
+  return posts
+}
+```
+
+**`async` を付けた関数は、必ず Promise を返します。** 上の `load()` は「メモの配列」ではなく「メモの配列を返す Promise」を返します。呼ぶ側もまた `await` する必要があります。
+
+`await` を書き忘れると、値の代わりに Promise がそのまま入ります。`console.log` に `Promise { <pending> }` と出たら、たいていこれです。
+
+**エラー処理**
+
+失敗（rejected）は例外として投げられるので、`try` / `catch` で受けます。
+
+```ts
+try {
+  const res = await fetch(url)
+  if (!res.ok) {
+    throw new Error(`API error: ${res.status}`)
+  }
+  return await res.json()
+} catch (e) {
+  console.error(e)
+}
+```
+
+**`fetch` は、404 や 500 が返ってきても失敗しません。** 通信そのものは成功しているためです。`catch` に入るのは、ネットワークが繋がらなかったときや URL が不正なときです。**ステータスコードの確認は `res.ok`（200番台かどうか）で自分で行います。** ここは間違えやすい箇所です。
 
 ## 6.2 CORS
 
 フロントエンドとバックエンドは別のドメインにデプロイされています。ブラウザは、あるオリジンから別のオリジンへのリクエストを既定で制限します。この制限を明示的に緩める設定が CORS です。
+
+**オリジンとは、スキーム・ホスト・ポートの3つ組です。** 1つでも違えば別のオリジンになります。
+
+| | オリジン |
+|---|---|
+| フロント | `http://localhost:5173` |
+| API | `http://localhost:8787` |
+
+**同じ `localhost` でも、ポートが違うので別オリジンです。** ブラウザは既定で、あるオリジンのページから別オリジンへのリクエストの**結果を読ませません**（同一オリジンポリシー）。悪意のあるページが、ログイン済みの別サイトのデータを勝手に読めてしまうのを防ぐためです。
+
+**API 側が「このオリジンからは読んでよい」と返すことで、初めて許可されます。** これが CORS で、**許可を出すのはサーバー側**です。フロント側で回避することはできません。
+
+**単純ではないリクエストには、事前確認が入ります。** JSON を POST する、`Authorization` ヘッダーを付ける、といった場合、ブラウザは本番のリクエストの前に `OPTIONS` メソッドで「このメソッドとヘッダーを使ってよいか」を尋ねます（プリフライトリクエスト）。**`allowMethods` と `allowHeaders` は、この問い合わせへの答えです。** ここに書き漏らすと、本番のリクエストが送られる前に失敗します。
 
 **扱うこと**
 
@@ -67,7 +131,7 @@ betterAuth({
 
 **`curl` では再現しません。** `curl` は `Origin` ヘッダーを送らないためです。ブラウザから初めて叩いたときに気づく種類の設定です。
 
-ブラウザの開発者ツールに CORS エラーが出ない状態で、フロントから API を呼べれば成功です。
+設定できたかは [6.3](#63-素の-fetch-で呼ぶ) で実際に呼んでから確認します。**確認するのはブラウザの開発者ツールです。** Network タブに `OPTIONS` と本番のリクエストが並び、どちらも成功していて、Console に CORS のエラーが出ていなければ成功です。
 
 **つまずきポイント**
 
@@ -80,14 +144,74 @@ betterAuth({
 
 まず最小の形で接続します。この段階では、キャッシュもローディング状態の管理も自前で書くことになります。**この不便さを体感しておくことが、[6.5](#65-react-query-に載せる) で React Query を導入する動機になります。**
 
-**扱うこと**
+> [!IMPORTANT]
+> **自分のメモ（`GET /posts`）は、まだ取得できません。** [3.10](03_backend.md#310-better-auth-を導入しposts-をユーザーに紐づける) で認証を必須にしたため、トークンを送らないと 401 が返ります。トークンを送れるようにするのは [6.6](#66-認証情報の受け渡し) です。
+>
+> **この節では、認証の要らない `GET /public/posts`（[3.11](03_backend.md#311-公開用のエンドポイント)）で `fetch` の形を確認します。** 表示するデータが無ければ、[3.11](03_backend.md#311-公開用のエンドポイント) の `curl` で公開メモを1件作っておいてください。
 
-- `fetch` の基本
-- `useEffect` の中で非同期処理を行う
-- ローディング状態とエラー状態を自前で管理する
-- [2章](02_frontend.md)で作った「メモリ上の配列」を API 呼び出しに置き換える
+```tsx
+const [posts, setPosts] = useState<PublicPost[]>([])
+const [loading, setLoading] = useState(true)
+const [error, setError] = useState<string | null>(null)
 
-ページをリロードしてもデータが消えず、API から取得したメモが表示されれば成功です。
+useEffect(() => {
+  // useEffect のコールバックに直接 async は付けられないので、中で定義して呼ぶ
+  const load = async () => {
+    try {
+      const res = await fetch('http://localhost:8787/public/posts')
+      if (!res.ok) {
+        throw new Error(`API error: ${res.status}`)
+      }
+      setPosts(await res.json())
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '取得に失敗しました')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  load()
+}, [])
+
+if (loading) return <p>読み込み中...</p>
+if (error !== null) return <p>{error}</p>
+```
+
+**状態が3つに増えたことに注目してください。** データそのもの (`posts`) に加えて、**読み込み中かどうか (`loading`)** と **失敗したかどうか (`error`)** を自分で管理することになります。API を呼ぶたびに、この3つ組を書くことになります。
+
+書き込みも形は同じです。**`res.ok` の確認を忘れないでください。**
+
+```tsx
+const addPost = async (values: { title: string; content: string }) => {
+  const res = await fetch('http://localhost:8787/posts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(values),
+  })
+  if (!res.ok) {
+    throw new Error(`API error: ${res.status}`)   // 401 の本文を追加してしまわないように
+  }
+  const created = await res.json()
+  setPosts((prev) => [...prev, created])
+}
+```
+
+**`fetch` の第2引数で、メソッド・ヘッダー・ボディを指定します。** [3.4](03_backend.md#34-ブラウザと-curl-から叩く) で `curl` に付けた `-X` / `-H` / `-d` と同じものです。ボディは文字列にする必要があるので `JSON.stringify` を通します。
+
+**このコードは、認証が無いのでまだ 401 になります。** それでも `res.ok` を確認していれば、**エラーのレスポンスをメモとして画面に並べてしまう**ことは防げます。
+
+公開メモの一覧が表示され、ブラウザの開発者ツールの Console に CORS のエラーが出ていなければ成功です（[6.2](#62-cors)）。
+
+**この書き方の問題**
+
+動きはしますが、次の節に進む前に、何が不便かを見ておきます。
+
+- **同じデータを複数の場所で使うと、それぞれが個別にリクエストを送ります。** 一覧ページと詳細ページで同じ `posts` が必要なら、2回取りに行くことになります
+- **サーバーの状態と手元の配列が、ずれる余地があります。** 上の `addPost` は、サーバーが返した値を手元にも足すことで整合させています。1箇所でも忘れると表示が古くなります
+- **同じ3つ組（データ・loading・error）を、呼び出しのたびに書くことになります**
+- 型が付きません。`res.json()` の戻り値は `any` で、`Post[]` だと保証するものは何もありません
+
+**この4つを解決するのが、[6.4](#64-hono-rpc-で型安全に呼ぶ) と [6.5](#65-react-query-に載せる) です。**
 
 **つまずきポイント**
 
@@ -104,7 +228,7 @@ betterAuth({
 **扱うこと**
 
 - バックエンドから `AppType` を型としてエクスポートする
-- `apps/web` から `apps/api` を workspace の依存として参照する
+- 同じ workspace 内にある `apps/api` の型を、`tsconfig` の `paths` で参照する
 - `hc` クライアントの生成
 - 型が効いていることの確認（存在しないパスを叩くと型エラーになる）
 
@@ -117,6 +241,17 @@ betterAuth({
 > - **[3.3](03_backend.md#33-最初のエンドポイント-health) で触れた通り、ルーティングをメソッドチェーンで書いていないと型が導出されません**
 > - **[3.7](03_backend.md#37-入力バリデーション) のバリデータを通していないと、リクエストボディの型が付きません**
 > - ルート数が増えると型推論が重くなり、エディタの補完が遅くなることがあります
+
+**API 側で型を公開する**
+
+`apps/api/src/index.ts` の末尾に1行足します。
+
+```ts
+export default app
+export type AppType = typeof app   // これを追加
+```
+
+`typeof app` は、**メソッドチェーンで組み立てたルーティングの形そのもの**です。パスもリクエストの型もレスポンスの型も、ここに入っています。
 
 **workspace をまたいで型を参照する**
 
@@ -155,16 +290,10 @@ import type { AppType } from 'api'
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8787'
 
-export const TOKEN_KEY = 'memo-app-token'
-
-export const client = hc<AppType>(API_URL, {
-  // オブジェクトで渡すと生成時の値で固定されるため、関数で渡す
-  headers: (): Record<string, string> => {
-    const token = localStorage.getItem(TOKEN_KEY)
-    return token === null ? {} : { Authorization: `Bearer ${token}` }
-  },
-})
+export const client = hc<AppType>(API_URL)
 ```
+
+**認証ヘッダーは [6.6](#66-認証情報の受け渡し) で足します。** ここではまだ付けません。
 
 呼び出しは、パスがそのままプロパティになります。
 
@@ -198,23 +327,24 @@ export type Post = InferResponseType<typeof client.posts.$get>[number]
 
 ## 6.5 React Query に載せる
 
-[6.3](#63-素の-fetch-で呼ぶ) で自前で書いたローディング管理、エラー処理、重複リクエストの排除を、ライブラリに任せます。加えて、401 が返ったときの処理を一箇所にまとめられます。
+[6.3](#63-素の-fetch-で呼ぶ) で自前で書いたローディング管理、エラー処理、キャッシュを、ライブラリに任せます。
 
-**扱うこと**
+**インストールと設定**
 
-- `useQuery` によるデータ取得
-- `useMutation` による更新
-- キャッシュと再取得のタイミング
-- 更新後にキャッシュを無効化する
-- 401 が返ったときにログイン画面へ遷移させる共通処理
+```bash
+npm i -w apps/web @tanstack/react-query
+```
 
-[6.3](#63-素の-fetch-で呼ぶ) と同じ動作のまま、コードから手書きのローディング管理が消えていれば成功です。同じデータを複数のコンポーネントで使っても、リクエストは1回にまとまります。
+アプリ全体を `QueryClientProvider` で囲みます。`apps/web/src/main.tsx`:
 
-**自動リトライを止める**
+```tsx
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import { BrowserRouter } from 'react-router'
+import './index.css'
+import App from './App.tsx'
 
-React Query は、失敗したクエリを既定で3回まで自動的に再試行します。**このアプリでは切ってください。**
-
-```ts
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -224,7 +354,95 @@ const queryClient = new QueryClient({
     },
   },
 })
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </QueryClientProvider>
+  </StrictMode>,
+)
 ```
+
+**`QueryClientProvider` で囲まないと、`useQuery` は「QueryClient が見つからない」というエラーで落ちます。**
+
+React Query は、失敗したクエリを既定で3回まで自動的に再試行します。このアプリでクエリが失敗する主な原因は 404（存在しない・権限がない）と 401（未ログイン）で、**どちらも再試行しても結果は変わりません。** [7.2](07_features.md#72-未ログインでも見られるページの土台を作る) で作る「非公開メモに未ログインでアクセスしたときの画面」が、リトライを待つ数秒間ずっと「読み込み中…」のままになるのを防げます。
+
+**データ取得と更新を hook にまとめる**
+
+`apps/web/src/hooks/usePosts.ts` を作ります。**API を呼ぶ場所をここに集めると、ページ側は「どのデータが欲しいか」だけを書けばよくなります。**
+
+```ts
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { client } from '../lib/api'
+
+export const postsKey = ['posts'] as const
+
+export const usePosts = () =>
+  useQuery({
+    queryKey: postsKey,
+    queryFn: async () => {
+      const res = await client.posts.$get()
+      if (!res.ok) throw new Error('メモの取得に失敗しました')
+      return await res.json()
+    },
+  })
+
+export const usePost = (id: string) =>
+  useQuery({
+    queryKey: [...postsKey, id],
+    queryFn: async () => {
+      const res = await client.posts[':id'].$get({ param: { id } })
+      if (!res.ok) throw new Error('メモが見つかりませんでした')
+      return await res.json()
+    },
+  })
+
+export const useCreatePost = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (input: { title: string; content: string }) => {
+      const res = await client.posts.$post({ json: input })
+      if (!res.ok) throw new Error('メモの作成に失敗しました')
+      return await res.json()
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: postsKey }),
+  })
+}
+```
+
+更新と削除も同じ形です（`useUpdatePost` / `useDeletePost`）。**`onSuccess` の `invalidateQueries` が、この節でいちばん重要な行です。**
+
+**`useQuery` は「読む」、`useMutation` は「書く」**という役割分担です。
+
+| | `useQuery` | `useMutation` |
+|---|---|---|
+| いつ動くか | 画面に出た時点で自動 | 呼び出したとき（`mutate` / `mutateAsync`） |
+| 返すもの | `data` / `isPending` / `isError` | 実行する関数と、その状態 |
+
+**`queryKey` は、そのデータの住所です。** `invalidateQueries({ queryKey: postsKey })` は「この住所のデータは古くなった」と伝えるもので、**その住所を見ている画面が自動で取り直します。** メモを追加したあとに一覧が更新されるのは、`useCreatePost` の `onSuccess` がこれを呼んでいるからです。**これを書き忘れると、追加したのに一覧が変わりません。**
+
+**ページ側の変更**
+
+`App` が `posts` の状態を持つ必要はなくなります。各ページが必要な hook を直接呼びます。
+
+```tsx
+// 変更前: App から Props で受け取っていた
+export function PostListPage({ posts, onAdd, onDelete }: Props) {
+
+// 変更後: 自分で取りに行く
+export function PostListPage() {
+  const { data: posts, isPending, isError } = usePosts()
+  const createPost = useCreatePost()
+  const deletePost = useDeletePost()
+```
+
+**`App.tsx` から `useState<Post[]>`、`addPost`、`updatePost`、`deletePost` を削除してください。** サーバーが持っているデータを、ブラウザ側でも二重に管理する必要がなくなります。
+
+[6.3](#63-素の-fetch-で呼ぶ) と同じ動作のまま、コードから手書きのローディング管理が消えていれば成功です。
 
 このアプリでクエリが失敗する主な原因は 404（存在しない・権限がない）と 401（未ログイン）で、どちらも再試行しても結果は変わりません。[7.2](07_features.md#72-未ログインでも見られるページの土台を作る) で作る「非公開メモに未ログインでアクセスしたときの画面」が、リトライを待つ数秒間ずっと「読み込み中…」のままになるのを防げます。
 
@@ -233,6 +451,8 @@ const queryClient = new QueryClient({
 > [!TIP]
 > - クエリキーの設計が重要です。キーが同じなら同じキャッシュを参照します
 > - 更新後にキャッシュを無効化しないと、画面が古いままになります
+> - **「リクエストが1回にまとまる」とは限りません。** 同時に走る同じクエリは1本にまとめられますが、既定ではデータはすぐ古い (stale) 扱いになり、別の画面を開いたときやウィンドウに戻ったときに取り直されます。頻度を抑えたい場合は `staleTime` を設定します
+> - **401 になったときにログイン画面へ飛ばす共通処理は、この記事では作っていません。** トークンが失効すると「メモの取得に失敗しました」と表示されるだけで、ログイン画面には戻りません。実務では `QueryCache` のエラーハンドラなどで一箇所にまとめます
 
 ## 6.6 認証情報の受け渡し
 
@@ -251,6 +471,218 @@ const queryClient = new QueryClient({
 - `hc` クライアントにヘッダーを付与する
 - ログアウト時にトークンを削除する
 - 未ログイン時のリダイレクト
+
+**トークンを保存して、リクエストに付ける**
+
+[6.4](#64-hono-rpc-で型安全に呼ぶ) で作った `apps/web/src/lib/api.ts` に、認証ヘッダーを足します。
+
+```diff
++export const TOKEN_KEY = 'memo-app-token'
++
+-export const client = hc<AppType>(API_URL)
++export const client = hc<AppType>(API_URL, {
++  // オブジェクトで渡すと生成時の値で固定されるため、関数で渡す
++  headers: (): Record<string, string> => {
++    const token = localStorage.getItem(TOKEN_KEY)
++    return token === null ? {} : { Authorization: `Bearer ${token}` }
++  },
++})
+```
+
+**`headers` を関数にしているのが要点です。** オブジェクトで渡すと、`client` を作った瞬間の値（＝まだログインしていないので空）が固定され、ログインしてもヘッダーが付きません。**関数なら、リクエストのたびに呼ばれます。**
+
+**サインアップとログイン**
+
+Better Auth のエンドポイントは `/auth/*` にワイルドカードで登録しているため、[6.4](#64-hono-rpc-で型安全に呼ぶ) の RPC の型には乗りません。ここは素の `fetch` で書きます。`apps/web/src/lib/auth.ts` を新しく作ります。
+
+```ts
+import { TOKEN_KEY } from './api'
+
+const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8787'
+
+export type SessionUser = {
+  id: string
+  name: string
+  userId: string
+  email: string
+}
+
+const authFetch = async (path: string, body: unknown) => {
+  const res = await fetch(`${API_URL}/auth${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+
+  if (!res.ok) {
+    // エラーのレスポンスは、本文が空のこともある
+    const body = await res.text()
+    const message = body === '' ? `エラーが発生しました (${res.status})` : body
+    throw new Error(message)
+  }
+
+  // bearer プラグインは、このヘッダーにトークンを載せて返す
+  const token = res.headers.get('set-auth-token')
+  if (token !== null) {
+    localStorage.setItem(TOKEN_KEY, token)
+  }
+
+  return (await res.json()) as { user: SessionUser }
+}
+
+export const signUp = (input: {
+  email: string
+  password: string
+  name: string
+  userId: string
+}) => authFetch('/sign-up/email', input)
+
+export const signIn = (input: { email: string; password: string }) =>
+  authFetch('/sign-in/email', input)
+
+export const signOut = () => {
+  localStorage.removeItem(TOKEN_KEY)
+}
+```
+
+**トークンは `set-auth-token` レスポンスヘッダーで返ってきます**（[3.10](03_backend.md#310-better-auth-を導入しposts-をユーザーに紐づける) で確認したものです）。サインアップとログインで処理が同じなので、1つの関数にまとめています。
+
+**ログイン状態を知る**
+
+保存したトークンが有効かどうかは、サーバーに聞きます。
+
+```ts
+export const getSession = async (): Promise<SessionUser | null> => {
+  const token = localStorage.getItem(TOKEN_KEY)
+  if (token === null) return null
+
+  const res = await fetch(`${API_URL}/auth/get-session`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!res.ok) return null
+
+  const session = (await res.json()) as { user: SessionUser } | null
+  return session?.user ?? null
+}
+```
+
+これを React Query に載せると、**アプリのどこからでも同じログイン状態を参照できます。**
+
+```ts
+export const sessionKey = ['session'] as const
+
+export const useSession = () =>
+  useQuery({
+    queryKey: sessionKey,
+    queryFn: getSession,
+    staleTime: 60_000,
+  })
+```
+
+**ログイン画面**
+
+`apps/web/src/pages/LoginPage.tsx` を作ります。
+
+```tsx
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router'
+import { useQueryClient } from '@tanstack/react-query'
+import { signIn } from '../lib/auth'
+import { sessionKey } from '../hooks/useSession'
+
+export function LoginPage() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+
+    try {
+      await signIn({ email, password })
+      await queryClient.invalidateQueries({ queryKey: sessionKey })
+      navigate('/')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'ログインに失敗しました')
+    }
+  }
+
+  return (
+    <main>
+      <h1>ログイン</h1>
+      <form className="post-form" onSubmit={handleSubmit}>
+        <label htmlFor="email">メールアドレス</label>
+        <input
+          id="email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+
+        <label htmlFor="password">パスワード</label>
+        <input
+          id="password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+
+        {error !== null && <p role="alert">{error}</p>}
+
+        <button type="submit">ログイン</button>
+      </form>
+      <p>
+        アカウントがない場合は <Link to="/signup">新規登録</Link>
+      </p>
+    </main>
+  )
+}
+```
+
+**`e.preventDefault()` を忘れないでください。** `<form>` の既定の動作はページ全体の再読み込みで、これが走ると入力も状態もすべて失われます。
+
+**`invalidateQueries({ queryKey: sessionKey })` が、ログイン直後に効きます。** トークンを保存しただけでは、`useSession()` は前の結果（未ログイン）を持ったままです。**「セッションの情報が古くなった」と伝えて取り直させます。**
+
+`<label htmlFor="email">` と `<input id="email">` を対応させているのは、**テストがこの対応を使って入力欄を探すため**でもあります（[8章](08_e2e.md)の `getByLabel`）。
+
+**サインアップ画面**
+
+`apps/web/src/pages/SignUpPage.tsx` も同じ形です。入力欄が4つ（メールアドレス、パスワード、表示名、ユーザー ID）になり、`signIn` の代わりに `signUp` を呼びます。
+
+**ユーザー ID の入力欄には、あとから変更できないことを明記してください**（[3.10](03_backend.md#310-better-auth-を導入しposts-をユーザーに紐づける)）。公開ページの URL に使われます。
+
+**ルートを足す**
+
+`App.tsx` に2つのルートを足します。
+
+```tsx
+<Route path="/login" element={<LoginPage />} />
+<Route path="/signup" element={<SignUpPage />} />
+```
+
+**未ログインのときにメモ一覧へ来たらログイン画面へ送る**処理は、[7.2](07_features.md#72-未ログインでも見られるページの土台を作る) の `RequireAuth` で入れます。この章では、`useSession()` の結果が `null` なら `<Navigate to="/login" replace />` を返す、という単純な形で構いません。
+
+**ログアウト**
+
+```ts
+export const useSignOut = () => {
+  const queryClient = useQueryClient()
+
+  return () => {
+    clearToken()
+    queryClient.setQueryData(sessionKey, null)
+    queryClient.removeQueries({ queryKey: postsKey })
+  }
+}
+```
+
+**トークンを消すだけでは画面が切り替わりません。** 表示中のコンポーネントは `useSession()` の結果を見ているので、そこに「ログアウトした」ことを伝える必要があります。詳しくは下のつまずきポイントを見てください。
+
+> [!NOTE]
+> **これは「手元のトークンを捨てるだけ」の簡易的なログアウトです。** サーバー側のセッションは残り、有効期限が切れるまで生きています。**そのトークンが他人の手に渡っていた場合、ログアウトしても使われ続けます。** 実務では、Better Auth の `/auth/sign-out` を呼んでサーバー側のセッションも無効にしてください。
 
 ログインすると自分のメモだけが表示され、ログアウトするとログイン画面に戻れば成功です。リロードしてもログイン状態が維持されることも確認してください。
 
@@ -294,14 +726,77 @@ HttpOnly 属性を付けた Cookie であれば JavaScript からは読めない
 
 フロントエンドから API を呼ぶには、API の URL を知っている必要があります。ローカルと本番で異なるため、環境変数で切り替えます。
 
-**扱うこと**
+**Vite の環境変数**
 
-- Vite の環境変数（`VITE_` 接頭辞と `import.meta.env`）
-- ローカル用の `.env.local` と本番用の設定
-- GitHub Actions のビルド時に環境変数を渡す
-- CORS の許可オリジンに本番のフロントエンドの URL を追加する
+Vite は、`VITE_` で始まる環境変数だけを `import.meta.env` 経由でコードに渡します。
+
+```ts
+const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8787'
+```
+
+`??` を付けているので、**設定しなければローカルの API を指します。** 開発中は何もしなくて構いません。
+
+ローカルで別の値を使いたい場合は、`apps/web/.env.local` に書きます。このファイルは Git に入れません（[1.8](01_setup.md#18-リポジトリと-workspace-を作る) の `.gitignore` に `.env` 系が入っています）。
+
+```
+VITE_API_URL=http://localhost:8787
+```
+
+**本番の値は、GitHub の Variables に登録します。** [5.2](05_deploy.md#52-github-actions-を構築する) のワークフローが、ビルドのステップでこれを読みます。
+
+```yaml
+      - run: npm run build -w apps/web
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+```
+
+リポジトリの Settings → Secrets and variables → Actions → **Variables** タブで登録します。
+
+| 名前 | 値 |
+|---|---|
+| `VITE_API_URL` | デプロイした API のオリジン（`https://memo-app-api.<サブドメイン>.workers.dev`） |
+
+**登録しただけでは反映されません。** 値が埋め込まれるのはビルド時なので、**フロントを再デプロイする必要があります。** `apps/web` を変更して push するか、Actions の画面から `Deploy Web` を再実行してください。
+
+**API 側の設定**
+
+`apps/api/wrangler.jsonc` の `vars` を、本番の値に書き換えます。
+
+| キー | 本番の値 |
+|---|---|
+| `CORS_ORIGIN` | **本番フロントエンド**の URL |
+| `BETTER_AUTH_URL` | **本番 API 自身**の URL |
+
+**この2つは別のものです。** 前者は「どこからのリクエストを許すか」、後者は「自分自身がどの URL で公開されているか」です。
+
+**書き換えるとローカル開発が壊れます。** `vars` はローカルでも使われるためです。**`apps/api/.dev.vars` に同じキーを書いて上書きしてください。**
+
+```
+CORS_ORIGIN=http://localhost:5173
+BETTER_AUTH_URL=http://localhost:8787
+BETTER_AUTH_SECRET=<ローカル用の値>
+```
+
+書き換えたら型を生成し直します。
+
+```bash
+npm run cf-typegen -w apps/api
+```
+
+**CORS と `trustedOrigins` の両方に効くことを確認してください。** どちらか片方だけ直すと、**CORS は通るのに Better Auth が 403 を返し、本文が `Invalid origin` になる**という分かりにくい状態になります（[3.10](03_backend.md#310-better-auth-を導入しposts-をユーザーに紐づける) の `trustedOrigins` は `CORS_ORIGIN` を見ているので、この記事の構成では1箇所で済みます）。
 
 デプロイした本番環境で、サインアップ・ログイン・メモの CRUD が一通り動けば成功です。
+
+**この章を終える前に**
+
+**[4.1](04_test.md#41-フロントエンドのテスト) で書いたテストは、そのままでは通りません。** `App` が React Query と認証に依存するようになったためです（`QueryClientProvider` が無い、ログイン画面に飛ぶ）。
+
+**`App.test.tsx` は削除し、`PostForm` と `PostList` のような、API に依存しないコンポーネント単位のテストに置き換えてください。** 完成形は `chapter-06` にあります。**5章のデプロイのワークフローはテストを実行してからデプロイするので、ここを直さないと本番に反映されません。**
+
+```bash
+npm test -w apps/web
+npm test -w apps/api
+```
 
 **つまずきポイント**
 

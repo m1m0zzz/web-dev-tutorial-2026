@@ -31,6 +31,7 @@ npm run dev -w apps/web
 > - スクリプトの実行も同様です。例: `npm run dev -w apps/web`
 > - 生成された `apps/web/package.json` には `"private": true` が既に入っているはずです。無ければ追加してください
 > - WSL から起動した開発サーバーには、Windows 側のブラウザからそのままアクセスできます
+> - **`npm run dev` は起動したままになります。** 「コマンドが終わらない」のではなく、それが正常な状態です。**以降のコマンドは別のターミナルで実行してください。** 止めるときは `Ctrl+C`、再開は同じコマンドです
 
 ### 生成されたファイルを読む
 
@@ -48,8 +49,8 @@ npm run dev -w apps/web
 | `tsconfig.json` | 他の2つを参照するだけのファイル（Project References） |
 | `tsconfig.app.json` | アプリ本体（`src/`）向けの TypeScript 設定 |
 | `tsconfig.node.json` | `vite.config.ts` など、Node.js 側で動くファイル向けの設定 |
-| `.oxlintrc.json` | oxlint（Lint ツール）の設定。[2.10](#210-任意-oxlint--oxfmt-のセットアップ) でルートに移します |
-| `README.md` | テンプレートの説明。`apps/web` を単体で扱う前提の内容なので、[2.10](#210-任意-oxlint--oxfmt-のセットアップ) で消します |
+| `.oxlintrc.json` | oxlint（Lint ツール）の設定。[2.10](#210-oxlint--oxfmt-のセットアップ) でルートに移します |
+| `README.md` | テンプレートの説明。`apps/web` を単体で扱う前提の内容なので、[2.10](#210-oxlint--oxfmt-のセットアップ) で消します |
 
 `public/` と `src/assets/` の違いは、**バンドラを通るかどうか**です。`src/assets/` の画像は `import` して使い、ビルド時にハッシュ付きのファイル名に変換されます。`public/` のファイルはパスをそのまま書いて参照します。
 
@@ -217,7 +218,18 @@ React の中心的な概念である「状態 (state)」を理解します。ボ
 rm -rf apps/web/src/assets apps/web/src/App.css
 ```
 
-`apps/web/src/index.css` は中身を空にしてください（[2.8](#28-css-基礎) で書きます）。そのうえで `apps/web/src/App.tsx` を全文置き換えます。
+`apps/web/src/index.css` は中身を空にしてください（[2.8](#28-css-基礎) で書きます）。
+
+`apps/web/index.html` も2箇所直しておきます。**日本語のページなので `lang` を `ja` にします**（スクリーンリーダーの読み上げや、ブラウザの翻訳の判断に使われます）。`<title>` はブラウザのタブに出る文字です。
+
+```diff
+-<html lang="en">
++<html lang="ja">
+-    <title>web</title>
++    <title>メモ</title>
+```
+
+そのうえで `apps/web/src/App.tsx` を全文置き換えます。
 
 ```tsx
 import { useState } from 'react'
@@ -261,30 +273,58 @@ export default App
 - 依存配列
 - クリーンアップ関数を返さないとどうなるか
 
-スタートボタンで経過秒数が増え、ストップで止まり、リセットで 0 に戻れば成功です。ページを離れたあとにタイマーが動き続けていないことも確認してください。
+スタートボタンで経過秒数が増え、ストップで止まり、リセットで 0 に戻れば成功です。
 
 **つまずきポイント**
 
 > [!TIP]
-> - **クリーンアップ関数を返し忘れると、`setInterval` が解除されずに残り続けます。** コンポーネントが再描画されるたびに新しいインターバルが増え、カウントが加速します。この現象を実際に体験してもらう構成にします
+> - **クリーンアップ関数を返し忘れると、`setInterval` が解除されずに残り続けます。** ストップとスタートを繰り返すたびに、解除されなかったインターバルが積み重なり、カウントが加速します。この現象は下で実際に試します
 > - 依存配列を空にするか、値を入れるかで挙動が変わります。空配列は「マウント時に一度だけ」を意味します
-> - React の開発モードでは `useEffect` が意図的に2回実行されます。これはバグを見つけるための機能で、本番ビルドでは1回です
+> - **React の開発モード（Strict Mode）では、コンポーネントが最初に表示されるときに effect が「実行 → クリーンアップ → もう一度実行」の順で走ります。** クリーンアップの書き忘れを見つけるための機能で、本番ビルドでは1回だけです
 
 **コード**
 
-[2.4](#24-カウンター) の `App.tsx` を、以下のように書き換えます。
+[2.4](#24-カウンター) の `App.tsx` を、丸ごと置き換えます。カウンターの `count` と `increment` は使わなくなります。
 
-```diff
--import { useState } from 'react'
-+import { useEffect, useState } from 'react'
+```tsx
+import { useEffect, useState } from 'react'
 
- function App() {
--  const [count, setCount] = useState(0)
-+  const [seconds, setSeconds] = useState(0)
-+  const [running, setRunning] = useState(false)
+function App() {
+  const [seconds, setSeconds] = useState(0)
+  const [running, setRunning] = useState(false)
+
+  useEffect(() => {
+    if (!running) return
+
+    const id = setInterval(() => {
+      setSeconds((prev) => prev + 1)
+    }, 1000)
+
+    return () => {
+      clearInterval(id)
+    }
+  }, [running])
+
+  const reset = () => {
+    setRunning(false)
+    setSeconds(0)
+  }
+
+  return (
+    <div>
+      <h1>タイマー</h1>
+      <p>{`経過時間: ${seconds} 秒`}</p>
+      <button onClick={() => setRunning(true)}>スタート</button>
+      <button onClick={() => setRunning(false)}>ストップ</button>
+      <button onClick={reset}>リセット</button>
+    </div>
+  )
+}
+
+export default App
 ```
 
-`useEffect` の部分は初出なので全文で示します。`App` の中、`return` の手前に置きます。
+`useEffect` の部分を、あらためて見ます。
 
 ```tsx
 useEffect(() => {
@@ -310,23 +350,7 @@ useEffect(() => {
 
 `running` が `false` のあいだは何もせずに戻り、`true` になった瞬間に `setInterval` を登録します。`running` が `false` に戻ると、React はまずクリーンアップ関数を呼んでインターバルを解除してから、新しい effect（何もせず戻る）を実行します。
 
-画面部分は以下のようになります。
-
-```tsx
-return (
-  <div>
-    <h1>タイマー</h1>
-    <p>{`経過時間: ${seconds} 秒`}</p>
-    <button onClick={() => setRunning(true)}>スタート</button>
-    <button onClick={() => setRunning(false)}>ストップ</button>
-    <button onClick={reset}>リセット</button>
-  </div>
-)
-```
-
-`reset` は `setRunning(false)` と `setSeconds(0)` を続けて呼ぶだけの関数です。
-
-**クリーンアップ関数を消すと何が起きるか、一度試してください。** `return () => { clearInterval(id) }` の行を消してストップ・スタートを何度か押すと、解除されなかったインターバルが積み重なり、秒数が2倍、3倍の速さで進みます。
+**クリーンアップ関数を消すと何が起きるか、一度試してください。** `return () => { clearInterval(id) }` の行を消して**ストップとスタートを何度か押す**と、解除されなかったインターバルが積み重なり、秒数が2倍、3倍の速さで進みます。**依存配列が `[running]` なので、増えるのは `running` を切り替えたときです。**
 
 ## 2.6 編集可能なリスト (メモリスト)
 
@@ -423,25 +447,49 @@ const deletePost = (id: string) => {
 
 3つとも `setPosts((prev) => ...)` の関数形式で書いています。[2.4](#24-カウンター) で触れたとおり、**今の状態を元に次の状態を決めるときは常にこの形にします。** `setPosts([...posts, newPost])` と書くと、この関数が作られた時点の `posts` を見るため、1回の操作で複数回更新したときに取りこぼします。
 
-描画側は `map` でリストを作り、各要素に `key` を付けます。
+描画側は、入力フォームと一覧の2つです。`map` でリストを作り、各要素に `key` を付けます。
 
 ```tsx
-<ul>
-  {posts.map((post) => (
-    <li key={post.id}>
+return (
+  <div>
+    <h1>メモ</h1>
+
+    <div>
       <input
-        value={post.title}
-        onChange={(e) => updatePost(post.id, { title: e.target.value })}
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="タイトル"
       />
       <textarea
-        value={post.content}
-        onChange={(e) => updatePost(post.id, { content: e.target.value })}
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        placeholder="本文"
       />
-      <button onClick={() => deletePost(post.id)}>削除</button>
-    </li>
-  ))}
-</ul>
+      <button onClick={addPost}>追加</button>
+    </div>
+
+    <ul>
+      {posts.map((post) => (
+        <li key={post.id}>
+          <input
+            value={post.title}
+            onChange={(e) => updatePost(post.id, { title: e.target.value })}
+          />
+          <textarea
+            value={post.content}
+            onChange={(e) => updatePost(post.id, { content: e.target.value })}
+          />
+          <button onClick={() => deletePost(post.id)}>削除</button>
+        </li>
+      ))}
+    </ul>
+  </div>
+)
 ```
+
+**`App.tsx` はタイマーから全面的に置き換わります。** `import { useState } from 'react'` から始まり、`type Post` の定義、上に挙げた3つの状態と3つの操作、この `return` という並びです。`useEffect` と `setInterval` はもう使いません。
+
+入力欄が `value` と `onChange` の組になっていることに注目してください。**React では、入力欄の値も状態として持ちます**（制御コンポーネント）。`value` だけ指定して `onChange` を書かないと、状態が変わらないので文字を打っても何も起きません。
 
 ## 2.7 コンポーネント分離
 
@@ -461,52 +509,371 @@ const deletePost = (id: string) => {
 
 > [!TIP]
 > - 分割しすぎると、Props をバケツリレーする形になって逆に読みにくくなります。まず動くものを作ってから分割する順番を推奨します
-> - Props は読み取り専用です。子コンポーネントの中で書き換えても親には反映されません。親の状態を変えたい場合は、親から関数を渡します
+> - **Props は書き換えてはいけません。** 言語の仕組みとして禁止されているわけではありませんが、書き換えると**親が持っているデータを裏で壊したうえに、React には変更が伝わらない**（再描画されない）という、いちばん厄介な壊れ方をします。親の状態を変えたいときは、親から渡された関数を呼びます
+
+**どこで分割するか**
+
+判断基準を先に決めておきます。この記事では次の2つで分けています。
+
+- **役割が違うもの**（入力フォームと一覧は別の仕事をしている）
+- **繰り返し描かれるもの**（一覧の1行は `map` の中で何度も描かれる）
+
+`apps/web/src/` を次の形にします。
+
+```
+src/
+├── App.tsx              状態を持ち、全体を組み立てる
+├── types.ts             型の定義
+└── components/
+    ├── PostForm.tsx     入力欄と「追加」ボタン
+    ├── PostList.tsx     メモの一覧
+    └── PostItem.tsx     一覧の1行
+```
+
+**型を切り出す**
+
+`Post` 型は複数のファイルから使うので、独立したファイルにします。`apps/web/src/types.ts`:
+
+```ts
+export type Post = {
+  id: string
+  title: string
+  content: string
+  createdAt: number
+  updatedAt: number
+}
+```
+
+**入力フォーム**
+
+`apps/web/src/components/PostForm.tsx`:
+
+```tsx
+import { useState } from 'react'
+
+type Props = {
+  onAdd: (values: { title: string; content: string }) => void
+}
+
+export function PostForm({ onAdd }: Props) {
+  const [title, setTitle] = useState('')
+  const [content, setContent] = useState('')
+
+  const handleAdd = () => {
+    if (title === '' || content === '') return
+
+    onAdd({ title, content })
+    setTitle('')
+    setContent('')
+  }
+
+  return (
+    <div className="post-form">
+      <input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="タイトル"
+      />
+      <textarea
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        placeholder="本文"
+      />
+      <button onClick={handleAdd}>追加</button>
+    </div>
+  )
+}
+```
+
+**入力中の値は `PostForm` の中に閉じ込めています。** [2.6](#26-編集可能なリスト-メモリスト) では `title` と `content` を `App` が持っていましたが、この2つを使うのは入力欄だけです。**状態は、それを使うコンポーネントのうち一番下に置きます。** 上に置くほど、関係のないコンポーネントまで再描画の対象になります。
+
+追加されたことは親に伝える必要があるので、`onAdd` という関数を Props で受け取って呼びます。**これが「子から親への通知」です。** 子は「追加ボタンが押され、内容はこれです」と伝えるだけで、配列を実際に変更するのは状態を持っている `App` の仕事です。
+
+**一覧の1行**
+
+`apps/web/src/components/PostItem.tsx`:
+
+```tsx
+import type { Post } from '../types'
+
+type Props = {
+  post: Post
+  onUpdate: (id: string, values: { title?: string; content?: string }) => void
+  onDelete: (id: string) => void
+}
+
+export function PostItem({ post, onUpdate, onDelete }: Props) {
+  return (
+    <li className="post-item">
+      <input
+        value={post.title}
+        onChange={(e) => onUpdate(post.id, { title: e.target.value })}
+      />
+      <textarea
+        value={post.content}
+        onChange={(e) => onUpdate(post.id, { content: e.target.value })}
+      />
+      <button onClick={() => onDelete(post.id)}>削除</button>
+    </li>
+  )
+}
+```
+
+**Props の型は `type Props = { ... }` で定義し、引数の位置で分割代入して受け取ります。** `({ post, onUpdate, onDelete }: Props)` は「Props という型のオブジェクトを1つ受け取り、その3つのプロパティを取り出す」という意味です。
+
+**一覧**
+
+`apps/web/src/components/PostList.tsx`:
+
+```tsx
+import type { Post } from '../types'
+import { PostItem } from './PostItem'
+
+type Props = {
+  posts: Post[]
+  onUpdate: (id: string, values: { title?: string; content?: string }) => void
+  onDelete: (id: string) => void
+}
+
+export function PostList({ posts, onUpdate, onDelete }: Props) {
+  if (posts.length === 0) {
+    return <p>まだメモがありません。</p>
+  }
+
+  return (
+    <ul className="post-list">
+      {posts.map((post) => (
+        <PostItem
+          key={post.id}
+          post={post}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
+      ))}
+    </ul>
+  )
+}
+```
+
+**「メモが1件も無いとき」の表示をここに置いています。** 一覧を描く責任を持つコンポーネントが、空の場合も引き受ける形です。`App` 側に `posts.length === 0 ? ... : ...` を書かずに済みます。
+
+**組み立てる**
+
+`App.tsx` は、状態と3つの操作を持ち、あとは組み立てるだけになります。
+
+```tsx
+import { useState } from 'react'
+import { PostForm } from './components/PostForm'
+import { PostList } from './components/PostList'
+import type { Post } from './types'
+
+function App() {
+  const [posts, setPosts] = useState<Post[]>([])
+
+  // 入力欄が PostForm に移ったので、addPost は値を引数で受け取る形になります
+  const addPost = (values: { title: string; content: string }) => {
+    const now = Date.now()
+    const newPost: Post = {
+      id: crypto.randomUUID(),
+      title: values.title,
+      content: values.content,
+      createdAt: now,
+      updatedAt: now,
+    }
+    setPosts((prev) => [...prev, newPost])
+  }
+
+  // updatePost と deletePost は 2.6 のままです
+
+  return (
+    <main>
+      <h1>メモ</h1>
+      <PostForm onAdd={addPost} />
+      <PostList posts={posts} onUpdate={updatePost} onDelete={deletePost} />
+    </main>
+  )
+}
+
+export default App
+```
+
+**`App` は状態を持つだけになり、見た目を組み立てる部分は3行になりました。** どのコンポーネントも、自分が何を受け取って何を返すかだけを見れば読めます。
+
+`className` は [2.8](#28-css-基礎) で書くスタイルの当て先です。この時点では見た目は変わりません。
 
 ## 2.8 CSS 基礎
 
 ここまで見た目には手を付けていません。CSS の基本的な考え方を押さえます。React に固有の話ではなく、Web 全般の話です。
 
-**扱うこと**
+**ボックスモデル**
 
-- `display` の違い: `block` / `inline` / `inline-block`
-- Flexbox（1次元のレイアウト）
-- Grid（2次元のレイアウト）
-- `position`: `static` / `relative` / `absolute` / `fixed` / `sticky`
-- ボックスモデルと `box-sizing`
+**すべての要素は長方形の箱です。** 箱は内側から順に、内容 (content)、余白の内側 (padding)、枠線 (border)、余白の外側 (margin) の4層でできています。
 
-メモアプリが意図した配置で表示されれば成功です。
+TODO(執筆時) 図: ボックスモデルの4層と、`box-sizing` による `width` の意味の違い
 
-**つまずきポイント**
-
-> [!TIP]
-> - `inline` 要素には `width` と `height` が効きません。`margin` と `padding` も上下方向は期待通りに効きません。ここが最も引っかかる箇所です
-> - `position: absolute` の基準は「最も近い `position` が `static` 以外の祖先」です。基準にしたい要素に `position: relative` を付けるのが定石です
-> - Flexbox の `justify-content` と `align-items` は、`flex-direction` によって向きが入れ替わります
-
-参考: https://developer.mozilla.org/ja/docs/Learn_web_development/Core/CSS_layout
-
-**必要な図**
-
-この節は文章だけでは伝わりにくいため、以下の5点は図を用意します。
-
-| 図 | 示すもの |
-|---|---|
-| ボックスモデル | content / padding / border / margin の入れ子と、`box-sizing: border-box` で `width` の意味がどう変わるか |
-| `display` の違い | `block` / `inline` / `inline-block` の3つを並べ、幅・高さ・改行の挙動を比較する |
-| Flexbox の軸 | `flex-direction: row` と `column` で主軸と交差軸が入れ替わること |
-| `justify-content` / `align-items` | 上の図と対応させ、どちらがどの軸方向の指定かを示す |
-| `position` の基準 | `absolute` が「最も近い `static` 以外の祖先」を基準にすること |
-
-**コード**
-
-`apps/web/src/index.css` に書きます。この記事では CSS Modules などは使わず、クラス名を直接書く方式で進めます。
+問題になるのは `width` がどこまでを指すかです。既定の `box-sizing: content-box` では、`width` は**内容の幅だけ**を指します。つまり `width: 100%` に `padding: 8px` と `border: 1px` を足すと、実際の幅は `100% + 18px` になり、親からはみ出します。
 
 ```css
 *,
 *::before,
 *::after {
   box-sizing: border-box;
+}
+```
+
+`border-box` にすると、`width` が**枠線までを含んだ幅**になります。指定した数字がそのまま見た目の幅になるので、計算が要りません。**全要素にこれを指定するのは定番の設定です。**（`margin` は含まれません。外側の余白は常に別勘定です）
+
+**`display`: 箱の並び方**
+
+| 値 | 並び方 | `width` / `height` |
+|---|---|---|
+| `block` | 縦に積まれ、横幅いっぱいに広がる（`div`、`p`、`h1`、`ul`、`li`） | 効く |
+| `inline` | 文章の中に流れ込み、内容の幅しか取らない（`span`、`a`、`strong`） | **効かない** |
+| `inline-block` | 文章の中に流れ込むが、箱としての幅と高さを持つ | 効く |
+
+TODO(執筆時) 図: `block` / `inline` / `inline-block` の3つを並べ、幅・高さ・改行の挙動を比較する
+
+**`inline` に `width` と `height` が効かないことが、最初にぶつかる壁です。** 上下方向の `margin` と `padding` も、期待どおりには効きません（`padding` は描画されますが、行の高さを押し広げません）。リンクやボタンに大きさを持たせたいときは `inline-block` にするか、後述の Flexbox の子にします。
+
+**Flexbox: 1次元の並べ方**
+
+親に `display: flex` を指定すると、**子要素を1本の軸に沿って並べられます。**
+
+```css
+.post-item {
+  display: flex;
+  align-items: center;       /* 交差軸（縦）の位置 */
+  justify-content: space-between;  /* 主軸（横）の配り方 */
+  gap: 16px;                 /* 子どうしの間隔 */
+}
+```
+
+軸は2本あります。`flex-direction: row`（既定）なら**主軸が横、交差軸が縦**です。`column` にすると、この2つが入れ替わります。
+
+TODO(執筆時) 図: `flex-direction: row` と `column` で主軸と交差軸が入れ替わること。`justify-content` と `align-items` がどちらの軸を指すか
+
+| プロパティ | どちらの軸 | よく使う値 |
+|---|---|---|
+| `justify-content` | 主軸 | `flex-start` / `center` / `space-between` |
+| `align-items` | 交差軸 | `stretch`（既定）/ `center` / `flex-start` |
+| `gap` | 両方 | 長さ |
+
+**`justify-content` が「横方向」だと覚えないでください。** `flex-direction: column` にした瞬間に縦方向の指定になります。**「主軸」「交差軸」で覚えるのが唯一の近道です。**
+
+`gap` は子どうしの間隔です。以前は `margin` で調整していましたが、`gap` なら「最後の要素にだけ余白が余る」といった調整が要りません。
+
+**Grid: 2次元の並べ方**
+
+行と列の両方を同時に扱いたいときは `display: grid` です。
+
+```css
+.layout {
+  display: grid;
+  grid-template-columns: 200px 1fr;  /* 1列目は固定、2列目は残り全部 */
+  gap: 16px;
+}
+```
+
+`1fr` は「余った領域の1つぶん」を意味する Grid 専用の単位です。**「1列に並べたい」なら Flexbox、「表のような格子に置きたい」なら Grid** という使い分けで、まずは足ります。**このメモアプリは Flexbox だけで組めるので、Grid と次の `position` は、この章では書きません。** どちらも自分で画面を作るときに必ず要るので、ここで頭に入れておいてください。
+
+**`position`: 通常の流れから外す**
+
+| 値 | 挙動 |
+|---|---|
+| `static` | 既定。通常の流れのまま。`top` などは効かない |
+| `relative` | 通常の流れに場所を残したまま、そこからずらす |
+| `absolute` | **流れから外れ**、最も近い「`static` 以外の祖先」を基準に配置される |
+| `fixed` | 流れから外れ、画面（ビューポート）を基準に固定される |
+| `sticky` | 通常は流れのまま。スクロールで指定位置に達すると、そこに貼り付く |
+
+TODO(執筆時) 図: `absolute` が「最も近い `static` 以外の祖先」を基準にすること
+
+**`absolute` の基準は親要素ではありません。** 祖先をたどって、最初に見つかった `position` が `static` 以外の要素です。見つからなければページ全体が基準になります。そのため、**基準にしたい要素に `position: relative` を付けておく**のが定石です（`relative` は付けるだけでは見た目が変わりません）。バッジや閉じるボタンを右上に重ねる、といった配置はこの組み合わせで作ります。
+
+メモアプリが意図した配置で表示されれば成功です。
+
+**つまずきポイント**
+
+> [!TIP]
+> - **`inline` 要素には `width` と `height` が効きません。** `margin` と `padding` も上下方向は期待通りに効きません。ここが最も引っかかる箇所です
+> - **`position: absolute` の基準は「最も近い `position` が `static` 以外の祖先」です。** 基準にしたい要素に `position: relative` を付けるのが定石です
+> - **Flexbox の `justify-content` と `align-items` は、`flex-direction` によって向きが入れ替わります**
+> - 思ったところに要素が無いときは、ブラウザの開発者ツールで要素を選び、ボックスモデルの図（content / padding / border / margin が色分けされたもの）を見てください。どの層が効いているかがそのまま見えます
+
+参考: https://developer.mozilla.org/ja/docs/Learn_web_development/Core/CSS_layout
+
+**コード**
+
+[2.4](#24-カウンター) で空にした `apps/web/src/index.css` に書きます。この記事では CSS Modules などは使わず、クラス名を直接書く方式で進めます。
+
+```css
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  line-height: 1.6;
+  color: #1f2328;
+  background-color: #ffffff;
+}
+
+main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+h1 {
+  font-size: 1.5rem;
+}
+
+input,
+textarea {
+  width: 100%;
+  padding: 8px;
+  font: inherit;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+}
+
+textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+button {
+  padding: 8px 16px;
+  font: inherit;
+  color: #ffffff;
+  background-color: #1f6feb;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #1a5fd0;
+}
+
+.post-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.post-form button,
+.actions {
+  align-self: flex-start;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
 }
 
 .post-list {
@@ -529,7 +896,13 @@ const deletePost = (id: string) => {
 }
 ```
 
-`box-sizing: border-box` を全要素に指定するのは定番の設定です。既定の `content-box` では `width: 100%` に `padding` と `border` が足された分だけ幅がはみ出します。
+**上半分は、要素そのものへの指定です。** クラスを付けずに `body` や `input` を直接指定しているのは、アプリ全体で見た目を揃えるためです。`font: inherit` を入れているのは、**フォームの部品だけブラウザ既定のフォントになってしまうのを防ぐ**ためです。
+
+**下半分が、[2.7](#27-コンポーネント分離) で付けたクラスへの指定です。** `.post-form` は縦並び、`.post-item` は横並びで両端に寄せる、という使い分けになっています。どちらも Flexbox です。
+
+`align-self: flex-start` は、**Flexbox の子が交差軸方向に引き伸ばされるのを止める**指定です。これが無いと、縦並びの `.post-form` の中でボタンが横幅いっぱいに広がります。
+
+本文が 720px の幅で中央に寄り、メモが枠付きのカードのように並べば成功です。
 
 ## 2.9 React Router でページを分ける
 
@@ -587,37 +960,186 @@ createRoot(document.getElementById('root')!).render(
 )
 ```
 
+**編集の場所が変わります。** [2.7](#27-コンポーネント分離) までは一覧の中の入力欄で直接編集していましたが、ここからは一覧はタイトルのリンクだけになり、編集は個別ページで行います。`PostItem` はリンクと削除ボタンだけになります。
+
+```tsx
+import { Link } from 'react-router'
+import type { Post } from '../types'
+
+type Props = {
+  post: Post
+  onDelete: (id: string) => void
+}
+
+export function PostItem({ post, onDelete }: Props) {
+  return (
+    <li className="post-item">
+      <Link to={`/posts/${post.id}`}>{post.title}</Link>
+      <button onClick={() => onDelete(post.id)}>削除</button>
+    </li>
+  )
+}
+```
+
+`PostList` からも `onUpdate` が不要になるので、Props と `PostItem` への受け渡しから外します。
+
+**ページを作る**
+
+`src/pages/` を作り、ルートに対応するコンポーネントを置きます。`apps/web/src/pages/PostListPage.tsx` は、[2.7](#27-コンポーネント分離) の `App` が持っていた見た目をそのまま引き取る形です。
+
+```tsx
+import { PostForm } from '../components/PostForm'
+import { PostList } from '../components/PostList'
+import type { Post } from '../types'
+
+type Props = {
+  posts: Post[]
+  onAdd: (values: { title: string; content: string }) => void
+  onDelete: (id: string) => void
+}
+
+export function PostListPage({ posts, onAdd, onDelete }: Props) {
+  return (
+    <main>
+      <h1>メモ</h1>
+      <PostForm onAdd={onAdd} />
+      <PostList posts={posts} onDelete={onDelete} />
+    </main>
+  )
+}
+```
+
+`apps/web/src/pages/PostDetailPage.tsx` では、URL の `:id` を `useParams` で受け取り、`posts` から該当するメモを探します。
+
+```tsx
+import { useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router'
+import type { Post } from '../types'
+
+type Props = {
+  posts: Post[]
+  onUpdate: (id: string, values: { title: string; content: string }) => void
+  onDelete: (id: string) => void
+}
+
+export function PostDetailPage({ posts, onUpdate, onDelete }: Props) {
+  const { id } = useParams()
+  const navigate = useNavigate()
+  const post = posts.find((p) => p.id === id)
+
+  if (post === undefined) {
+    return (
+      <main>
+        <p>メモが見つかりませんでした。</p>
+        <Link to="/">一覧に戻る</Link>
+      </main>
+    )
+  }
+
+  return (
+    <PostEditor
+      key={post.id}
+      post={post}
+      onUpdate={onUpdate}
+      onDelete={onDelete}
+      navigate={navigate}
+    />
+  )
+}
+```
+
+`useParams` の戻り値は `string | undefined` です。**URL は利用者が自由に書き換えられるため、「見つからなかった場合」の分岐は必ず必要になります。** [7.2](07_features.md#72-未ログインでも見られるページの土台を作る) で、この分岐が「非公開メモに未ログインでアクセスしたとき」の表示に繋がります。
+
+編集フォームは、同じファイルの中で別のコンポーネントに分けています。
+
+```tsx
+type EditorProps = {
+  post: Post
+  onUpdate: (id: string, values: { title: string; content: string }) => void
+  onDelete: (id: string) => void
+  navigate: (to: string) => void
+}
+
+function PostEditor({ post, onUpdate, onDelete, navigate }: EditorProps) {
+  const [title, setTitle] = useState(post.title)
+  const [content, setContent] = useState(post.content)
+
+  const handleUpdate = () => {
+    onUpdate(post.id, { title, content })
+    navigate('/')
+  }
+
+  const handleDelete = () => {
+    onDelete(post.id)
+    navigate('/')
+  }
+
+  return (
+    <main>
+      <Link to="/">一覧に戻る</Link>
+      <h1>メモの編集</h1>
+      <div className="post-form">
+        <input value={title} onChange={(e) => setTitle(e.target.value)} />
+        <textarea value={content} onChange={(e) => setContent(e.target.value)} />
+        <div className="actions">
+          <button onClick={handleUpdate}>更新</button>
+          <button onClick={handleDelete}>削除</button>
+        </div>
+      </div>
+    </main>
+  )
+}
+```
+
+**入力中の値を `useState(post.title)` で初期化しているため、`post` が変わっても入力欄は初期値のままになります。** これを解決しているのが、呼び出し側の `key={post.id}` です。**`key` が変わると React はそのコンポーネントを作り直す**ので、別のメモを開いたときに `useState` の初期値から始まります。`key` は[2.6](#26-編集可能なリスト-メモリスト) でリスト描画に使ったものと同じ仕組みですが、ここでは「状態をリセットする道具」として使っています。
+
+**編集を「入力のたびに反映」から「更新ボタンを押したときだけ反映」に変えています。** そのため `onUpdate` が受け取る値は `{ title, content }` の両方が揃った形になり、[2.6](#26-編集可能なリスト-メモリスト) の `{ title?: string; content?: string }`（どちらか一方だけ渡せる形）から変わります。`App` 側の型も合わせて直してください。
+
+**ルートを定義する**
+
 `App.tsx` は、状態を持ったままルートの定義だけを行う形になります。
 
 ```tsx
+import { useState } from 'react'
+import { Route, Routes } from 'react-router'
+import { PostDetailPage } from './pages/PostDetailPage'
+import { PostListPage } from './pages/PostListPage'
+import type { Post } from './types'
+
 function App() {
   const [posts, setPosts] = useState<Post[]>([])
 
-  // 入力欄は PostForm に移ったので、addPost は値を引数で受け取る形になります
-  const addPost = (values: { title: string; content: string }) => {
-    const now = Date.now()
-    const newPost: Post = {
-      id: crypto.randomUUID(),
-      title: values.title,
-      content: values.content,
-      createdAt: now,
-      updatedAt: now,
-    }
-    setPosts((prev) => [...prev, newPost])
+  // addPost は 2.7 と同じ
+
+  const updatePost = (
+    id: string,
+    values: { title: string; content: string },
+  ) => {
+    setPosts((prev) =>
+      prev.map((post) =>
+        post.id === id ? { ...post, ...values, updatedAt: Date.now() } : post,
+      ),
+    )
   }
 
-  // updatePost / deletePost は 2.6 と同じ
+  // deletePost は 2.6 と同じ
 
   return (
     <Routes>
       <Route
         path="/"
-        element={<PostListPage posts={posts} onAdd={addPost} onDelete={deletePost} />}
+        element={
+          <PostListPage posts={posts} onAdd={addPost} onDelete={deletePost} />
+        }
       />
       <Route
         path="/posts/:id"
         element={
-          <PostDetailPage posts={posts} onUpdate={updatePost} onDelete={deletePost} />
+          <PostDetailPage
+            posts={posts}
+            onUpdate={updatePost}
+            onDelete={deletePost}
+          />
         }
       />
     </Routes>
@@ -627,30 +1149,7 @@ function App() {
 
 **複数ページで状態を共有する方法**が、ここに現れています。`posts` を持っているのは `App` だけで、各ページは Props として受け取ります。状態を持つ場所を、それを使うページより上に置く形です。
 
-個別ページでは、URL の `:id` を `useParams` で受け取り、`posts` から該当するメモを探します。
-
-```tsx
-const { id } = useParams()
-const navigate = useNavigate()
-const post = posts.find((p) => p.id === id)
-
-if (post === undefined) {
-  return <p>メモが見つかりませんでした。</p>
-}
-```
-
-`useParams` の戻り値は `string | undefined` です。**URL は利用者が自由に書き換えられるため、「見つからなかった場合」の分岐は必ず必要になります。** [7.2](07_features.md#72-未ログインでも見られるページの土台を作る) で、この分岐が「非公開メモに未ログインでアクセスしたとき」の表示に繋がります。
-
-削除や更新のあとに一覧へ戻るには `useNavigate` を使います。
-
-```tsx
-const handleDelete = () => {
-  onDelete(post.id)
-  navigate('/')
-}
-```
-
-## 2.10 任意) oxlint / oxfmt のセットアップ
+## 2.10 oxlint / oxfmt のセットアップ
 
 oxlint はコードの問題を検出するツール、oxfmt は整形するツールです。役割が異なるので併用します。整形に関することは oxfmt に任せ、oxlint はバグの原因になりうる書き方の検出に集中させます。どちらも [Oxc](https://oxc.rs/) という同じプロジェクトのツールです。
 
@@ -728,13 +1227,15 @@ rm apps/web/README.md
   "singleQuote": true,
   "printWidth": 80,
   "sortPackageJson": false,
-  "ignorePatterns": ["dist", ".wrangler", "package-lock.json"]
+  "ignorePatterns": ["dist", ".wrangler", "package-lock.json", "*.md"]
 }
 ```
 
 `semi`（行末のセミコロン）と `singleQuote`（文字列の引用符）は好みです。この記事のコードは、この2つの設定で整形したものに揃えてあります。`printWidth` は折り返す行の長さで、oxfmt の既定は 100 です。
 
 `sortPackageJson` を `false` にしているのは、**既定では `package.json` のキーを決まった順序に並び替えるためです。** npm が書いた内容が整形のたびに動くと、自分で足した行がどれなのか分かりにくくなります。
+
+`ignorePatterns` に `*.md` を入れているのは、**`README.md` や [1.9](01_setup.md#19-任意-claude-code--codex) の `AGENTS.md` まで書き換えられるのを避ける**ためです。oxfmt は Markdown も整形の対象にします。[3章](03_backend.md)以降で生成物が増えたら、ここに足していきます。
 
 **スクリプト**
 
@@ -752,6 +1253,18 @@ rm apps/web/README.md
 
 どちらもパスを渡さなければカレントディレクトリ以下が対象です。`format:check` は書き換えずに確認だけを行います。[5.2](05_deploy.md#52-github-actions-を構築する) で CI から実行します。
 
+**型検査のスクリプトも、ここで足しておきます。** `apps/web/package.json` に追加してください。
+
+```json
+{
+  "scripts": {
+    "typecheck": "tsc -b"
+  }
+}
+```
+
+**開発サーバー（`npm run dev`）は型エラーがあっても動きます。** Vite は型検査をせずに型注釈を取り除くだけだからです。**型エラーに気づくのはビルドか、この `typecheck` を実行したときです。** [5.2](05_deploy.md#52-github-actions-を構築する) の CI でも実行します。
+
 ルートで `npm run lint` と `npm run format` が実行でき、両方ともエラーなく終われば成功です。
 
 **つまずきポイント**
@@ -767,27 +1280,92 @@ rm apps/web/README.md
 
 ここまで React を「そういうもの」として使ってきました。裏で何が起きているのかを補います。
 
-**扱うこと**
+**再レンダリングとは何か**
 
-- 仮想 DOM と差分更新
-- 再レンダリングのトリガーは何か
-- SPA (Single Page Application) とは何か、従来のサーバーサイドレンダリングとの違い
-- SPA の利点と欠点
+React では、コンポーネントは**ただの関数**です。`App()` を実行すると JSX が返り、それが画面になります。
+
+状態が変わると、React は**そのコンポーネントの関数をもう一度実行します。** これが再レンダリングです。`setCount(1)` を呼ぶと `App()` がまた実行され、今度は `count` が `1` の状態で JSX が返ります。
+
+**関数の中で宣言した変数は、実行のたびに作り直されます。** それでも `count` の値が保たれるのは、値を持っているのが関数の外（React 側）だからです。`useState` は「React が預かっている値と、それを更新する関数」を取り出す窓口にすぎません。
+
+再レンダリングが起きるきっかけは、実質的に次の3つです。
+
+- そのコンポーネントの状態 (`useState` の値) が変わった
+- 親が再レンダリングされた
+- 受け取っている context の値が変わった
+
+**`count = count + 1` では画面が変わらない理由**が、ここにあります。React はその代入を知る手段がなく、関数を実行し直さないためです。
+
+**仮想 DOM と差分更新**
+
+関数を丸ごと実行し直すなら、画面全体を描き直すことになりそうですが、そうはなりません。
+
+React は、返された JSX を**メモリ上の軽いオブジェクト（仮想 DOM）**として持ちます。再レンダリングのたびに、前回の仮想 DOM と新しい仮想 DOM を比べ、**違うところだけ**を実際の DOM に反映します。`<p>現在の値: {count}</p>` の数字だけが変わったなら、書き換わるのはそのテキストだけです。
+
+実際の DOM の操作は重い処理です。**「毎回すべてを組み立て直す」という書きやすさと、「必要な部分しか触らない」という速度を両立させるための仕組み**が仮想 DOM です。
+
+[2.6](#26-編集可能なリスト-メモリスト) で `key` が必要だったのは、この比較のためです。リストの要素が増減したとき、React は `key` を手がかりに「これは前回のどの要素か」を対応づけます。`key` にインデックスを使うと、要素を削除したときに対応づけがずれ、入力中の文字が別の行に残るといった壊れ方をします。
+
+**SPA とは何か**
+
+従来の Web サイトは、リンクをクリックするたびにサーバーへ HTML を取りに行き、**ページ全体を読み込み直していました**（MPA: Multi Page Application）。
+
+SPA (Single Page Application) は、**最初に1つの HTML と JavaScript を読み込んだあとは、ページ遷移も含めてすべてブラウザ側で処理します。** [2.9](#29-react-router-でページを分ける) で `<a href>` ではなく `<Link to>` を使ったのは、まさにこの違いです。`<a href>` はサーバーに取りに行き、`<Link to>` は URL の表示だけ書き換えて描画をブラウザ内で差し替えます。
+
+| | MPA | SPA |
+|---|---|---|
+| ページ遷移 | サーバーから HTML を取り直す | ブラウザ内で描画を差し替える |
+| 遷移時のちらつき | 出やすい | 出にくい |
+| 遷移時の状態（ブラウザのメモリ上のもの） | 失われる | 保たれる |
+| 最初の表示 | HTML が届いた時点で見える | JavaScript を読んで実行するまで空 |
+
+**これは一般的な傾向で、必ずそうなるわけではありません。** SPA でも、データの取得待ちで読み込み表示を挟めばちらつきますし、コンポーネントが消えればその状態も消えます。MPA でも、サーバーや URL、ブラウザのストレージに置いた情報は遷移をまたいで保てます。
+
+**利点は、遷移が速く、状態を保てることです。** メモアプリで一覧から詳細に移っても `posts` が消えないのは、ページ全体が読み込み直されていないからです。
+
+**欠点は、最初の表示が JavaScript の実行に依存することです。** 初回の読み込みで JavaScript のダウンロードと実行が終わるまで、画面は空白です。検索エンジンや SNS のプレビューがこの空白を読んでしまう問題もあります。この欠点は [7.5](07_features.md#75-csr-の限界) で実際に確認します。
 
 ## 2.12 任意) CSR / SSG / SSR / ISR
 
-このチュートリアルで作るのは CSR (Client Side Rendering) のアプリです。他にも選択肢があることを知っておきます。
+[2.11](#211-任意-react-の仕組み--なぜ-spa-なのか) で見たとおり、SPA は「最初の HTML が空である」という欠点を持ちます。**これは「HTML をいつ、どこで作るか」の選び方の問題で、選択肢は4つあります。**
 
-**扱うこと**
+| 方式 | HTML をいつ作るか | どこで作るか |
+|---|---|---|
+| **CSR** (Client Side Rendering) | ブラウザで JavaScript を実行したとき | ブラウザ |
+| **SSG** (Static Site Generation) | ビルド時（デプロイの前） | 開発者の手元 / CI |
+| **SSR** (Server Side Rendering) | リクエストが来るたび | サーバー |
+| **ISR** (Incremental Static Regeneration) | ビルド時に作り、一定時間ごとに作り直す | サーバー |
 
-- CSR: ブラウザで JavaScript を実行して描画する（今回の構成）
-- SSG: ビルド時に HTML を生成しておく
-- SSR: リクエストのたびにサーバーで HTML を生成する
-- ISR: SSG と SSR の中間。一定時間ごとに再生成する
-- それぞれが向いているケース
+**このチュートリアルで作るのは CSR です。** サーバーが返す HTML は `<div id="root"></div>` がほぼ空のまま置かれたもので、中身はブラウザが JavaScript を実行して埋めます。
+
+それぞれの向き不向きは、**内容が誰にとっても同じか、更新頻度はどれくらいか**で決まります。
+
+| 方式 | 向いているもの | 向かないもの |
+|---|---|---|
+| CSR | ログインが前提の管理画面、社内ツール | 検索から流入させたいページ |
+| SSG | ドキュメント、ブログ、ランディングページ | 更新のたびに再ビルドが要るので、頻繁に変わる内容 |
+| SSR | ユーザーごとに内容が変わり、かつ検索にも載せたいページ | サーバーの負荷とコストが上がる |
+| ISR | 記事一覧のように、多少古くても許容できて数が多いもの | 即時反映が必須のもの |
+
+**今回のアプリは、途中まで CSR で問題がありません。** 自分のメモを見るにはログインが必要で、検索エンジンに拾わせる必要もないためです。問題が出るのは [7章](07_features.md)で**公開ページ**を足したときです。「ログインしていない人にも見せたい」「URL を共有したときにプレビューを出したい」という要件は、CSR と相性が悪くなります。
+
+**この章を終える前に**
+
+`npm run build -w apps/web` を実行してください。**開発サーバーは型検査をしないため、import の漏れや型の不整合が残っていても気づけません。** ビルドが通れば、この章のコードは型として整合しています。
+
+```bash
+npm run build -w apps/web
+```
+
+通ったらコミットしておきます。ここが `chapter-02` と比べる基準点になります。
+
+```bash
+git add .
+git commit -m "feat(web): メモアプリの UI を作る"
+```
 
 **注記**
 
-この節は概念の紹介に留めます。今回は Declarative mode を使うため、実際にレンダリング方式を切り替える機会はありません。この選択が何をもたらすかは、[7.5](07_features.md#75-csr-の限界) で実際に確認します。
+この節は概念の紹介に留めます。この記事では React Router の Declarative mode を使うため、実際にレンダリング方式を切り替える機会はありません。切り替えたい場合は、その仕組みを持つフレームワーク（React Router の Framework mode、Next.js など）を使うことになります。この選択が何をもたらすかは、[7.5](07_features.md#75-csr-の限界) で実際に確認します。
 
 **次の章**: [3 Hono でバックエンドを作る](03_backend.md)
