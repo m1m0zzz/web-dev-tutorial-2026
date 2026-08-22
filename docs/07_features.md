@@ -16,7 +16,7 @@ const handleTogglePublic = async () => {
   if (
     nextIsPublic &&
     !window.confirm(
-      'このメモを公開します。URL を知っている人が読めるようになります。',
+      'このメモを公開します。公開メモの一覧に載り、ログインしていない人でも読めるようになります。',
     )
   ) {
     return
@@ -42,13 +42,29 @@ const handleTogglePublic = async () => {
 
 **確認を挟むのは「公開する」ときだけです。** 非公開に戻すのは安全側への操作なので、そのまま実行します。**危険な方向にだけ確認を置く**という考え方です。
 
-**更新は [6.5](06_api-integration.md#65-react-query-に載せる) で作った `useUpdatePost` をそのまま使います。** 成功時に一覧のキャッシュを無効化するところまで、すでに書いてあります。これを忘れると、切り替えたのに一覧の表示が古いままになります。
+**更新は [6.5](06_api-integration.md#65-react-query-に載せる) で作った `useUpdatePost` を使いますが、無効化するキャッシュを増やす必要があります。**
+
+```ts
+onSuccess: () => {
+  queryClient.invalidateQueries({ queryKey: postsKey })
+  // 公開状態やタイトルの変更は、公開一覧とユーザーページにも影響する。
+  // ここを忘れると、非公開に戻したメモが /public に残って見える
+  queryClient.invalidateQueries({ queryKey: publicPostsKey })
+  queryClient.invalidateQueries({ queryKey: ['user-posts'] })
+},
+```
+
+**`['user-posts']` だけを渡しているのは、前方一致で消せるからです。** ユーザーごとのキーは `['user-posts', userId]` なので、この指定でどのユーザーのぶんも対象になります。
+
+`publicPostsKey` と `userPostsKey` は [7.3](#73-公開一覧ページ-public) と [7.4](#74-ユーザーページ-usersuserid) で作るので、そちらを先に読んでも構いません。
 
 **共有用の URL**
 
 公開中のときだけ、URL をコピーできるようにします。
 
 ```tsx
+const [copied, setCopied] = useState(false)
+
 const shareUrl = `${window.location.origin}/posts/${post.id}`
 
 const handleCopy = async () => {
@@ -56,6 +72,8 @@ const handleCopy = async () => {
   setCopied(true)
 }
 ```
+
+**`window.location.origin` を使うと、ローカルと本番で自動的に切り替わります。** ただし**開発中にコピーされるのは `http://localhost:5173/...` で、他人の端末からは開けません。** 実際に共有できるのは、デプロイした環境でコピーした URL です。
 
 ```tsx
 {post.isPublic && (
@@ -79,6 +97,45 @@ const handleCopy = async () => {
 
 **公開したことを忘れる、という事故を防ぐための表示です。** 切り替えの UI が個別ページにしかないと、一覧を見ても状態が分かりません。
 
+**CSS**
+
+この節で増えたクラスに、`apps/web/src/index.css` でスタイルを当てます。
+
+```css
+.post-item a {
+  margin-right: auto;
+}
+
+.badge {
+  padding: 2px 8px;
+  border: 1px solid #d0d7de;
+  border-radius: 999px;
+  color: #59636e;
+  font-size: 12px;
+}
+
+.badge.is-public {
+  border-color: #1f883d;
+  color: #1f883d;
+}
+
+.post-content {
+  white-space: pre-wrap;
+}
+
+.share {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.share input {
+  flex: 1;
+}
+```
+
+**`white-space: pre-wrap` は、本文の改行を保つ指定です。** これが無いと、`<p>` の中の改行が普通の空白として詰められ、書いたとおりに表示されません（[2.8](02_frontend.md#28-css-基礎)）。
+
 個別ページで公開に切り替えると、一覧にも公開中であることが表示されれば成功です。リロードしても状態が維持されることも確認してください。
 
 **つまずきポイント**
@@ -89,11 +146,11 @@ const handleCopy = async () => {
 
 ## 7.2 未ログインでも見られるページの土台を作る
 
-ここまでのアプリは、すべてのページがログインを前提としていました。公開ページを作る前に、ルーティングを認証必須のページと未認証可のページに分ける必要があります。
+[6.6](06_api-integration.md#66-認証情報の受け渡し) の時点で、`/login` と `/signup` だけは未ログインでも開けるようになっています。**ここでやるのは、「メモを見せるページ」を未ログインでも開けるようにすることです。** `/posts/:id` を認証必須の外へ出し、公開ページ用のルートを足します。
 
 **ルートを2種類に分ける**
 
-`App.tsx` を、認証が必要なページとそうでないページに分けます。
+`App.tsx` を、認証が必要なページとそうでないページに分けます。`RequireAuth` は [6.6](06_api-integration.md#66-認証情報の受け渡し) で入れたものと同じです。
 
 ```tsx
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -106,6 +163,8 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 ```
+
+**変わるのは、どのルートを `RequireAuth` で囲むかです。** `/posts/:id` を外に出し、`/public` と `/users/:userId` を足します。`App.tsx` の import には `Link`（ヘッダー用）と、新しい2つのページを追加してください。
 
 ```tsx
 <Routes>
@@ -167,9 +226,11 @@ function Header() {
 export function PostDetailPage() {
   const { id } = useParams()
   const { data: post, isPending, isError } = usePost(id!)
-  const { data: user } = useSession()
+  // セッションの確認が終わる前に所有者を判定すると、
+  // 所有者にも一瞬だけ閲覧専用の画面が見えてしまう
+  const { data: user, isPending: isSessionPending } = useSession()
 
-  if (isPending) return <main>読み込み中…</main>
+  if (isPending || isSessionPending) return <main>読み込み中…</main>
   if (isError || post === undefined) {
     return (
       <main>
@@ -231,7 +292,12 @@ export const usePublicPosts = () =>
 
 **ページ**
 
+`apps/web/src/pages/PublicPostsPage.tsx` を新しく作ります。
+
 ```tsx
+import { Link } from 'react-router'
+import { usePublicPosts } from '../hooks/usePosts'
+
 export function PublicPostsPage() {
   const { data: posts, isPending, isError } = usePublicPosts()
 
@@ -287,7 +353,12 @@ export const useUserPosts = (userId: string) =>
 
 **ページ**
 
+`apps/web/src/pages/UserPage.tsx` を新しく作ります。
+
 ```tsx
+import { Link, useParams } from 'react-router'
+import { useUserPosts } from '../hooks/usePosts'
+
 export function UserPage() {
   const { userId } = useParams()
   const { data, isPending, isError } = useUserPosts(userId!)
@@ -324,6 +395,21 @@ export function UserPage() {
 
 `/users/<ユーザーID>` にアクセスして、そのユーザーの公開メモだけが表示されれば成功です。存在しない ID では 404 相当の画面になります。
 
+**この章のコードを確認する**
+
+見た目の確認だけでは、import の漏れや型の不整合が残ります。7.5 に進む前に実行してください。
+
+```bash
+npm run typecheck -w apps/web
+npm run lint
+npm run format:check
+```
+
+> [!NOTE]
+> **「見つかりません」の表示は、404 以外の失敗でも出ます。** API が落ちている、CORS の設定が違う、ネットワークが繋がらない、といった場合も同じ画面になります。**手元で「見つかりません」が出たら、まずブラウザの開発者ツールの Network を見てください。** 実務では 404 とその他の失敗を分けて表示します。
+
+
+
 **つまずきポイント**
 
 > [!TIP]
@@ -335,10 +421,27 @@ export function UserPage() {
 
 **手を動かして確認すること**
 
-デプロイした公開ページに対して、`curl` でリクエストを送ります。
+`curl` で HTML を取得し、中身を見ます。**`<` と `>` はシェルのリダイレクト記号なので、そのまま貼り付けるとエラーになります。** 変数に入れてから実行してください。
 
 ```bash
-curl https://<フロントエンドのURL>/posts/<公開メモのID>
+# ローカルの開発サーバーで確認する場合（npm run dev -w apps/web を起動しておく）
+POST_ID=公開メモのID
+curl "http://localhost:5173/posts/$POST_ID"
+```
+
+本番で確認したい場合は、**この章の変更を先に反映する必要があります。**
+
+```bash
+git add .
+git commit -m "feat(web): 公開ページを追加する"
+git push origin main
+```
+
+`Deploy Web` の完了を待ってから、デプロイ先の URL に対して同じことをします。
+
+```bash
+FRONTEND_URL=https://memo-app-web.<サブドメイン>.workers.dev
+curl "$FRONTEND_URL/posts/$POST_ID"
 ```
 
 返ってくる HTML に、メモの本文が含まれていないことを確認してください。ブラウザで「ページのソースを表示」しても同じです。表示されているのは、ほぼ空の `<div id="root">` だけのはずです。
@@ -350,13 +453,21 @@ CSR (Client Side Rendering) では、サーバーが返すのは空の HTML と 
 この性質は、以下の場面で問題になります。
 
 - **検索エンジン**: 主要な検索エンジンは JavaScript を実行しますが、クロールの予算やレンダリングの遅延という制約があります。通常の HTML より不利です
-- **SNS のリンクプレビュー**: SNS のクローラーは基本的に JavaScript を実行しません。`<title>` や OGP を JavaScript で書き換えても、プレビューには反映されません。公開メモを共有したときに、タイトルも説明も出ないカードになります
+- **SNS のリンクプレビュー**: SNS のクローラーは基本的に JavaScript を実行しません。`<title>` や OGP を JavaScript で書き換えても、プレビューには反映されません。**公開メモを共有しても、そのメモのタイトルや本文はプレビューに出ず、`index.html` に書いた全ページ共通のタイトルが使われるか、プレビュー自体が作られません**
 
 つまり、**「公開メモアプリ」を名乗りながら、公開したメモを共有したときの体験が良くない**という状態です。
 
 **解決するには何が必要か**
 
-サーバー側で HTML を生成する仕組み（SSR または SSG）が必要です。React Router なら Framework mode、他に Next.js などの選択肢があります。
+必要なのは、**最初のレスポンスに、そのメモ固有の HTML が含まれている**ことです。[2.12](02_frontend.md#212-任意-csr--ssg--ssr--isr) で見た方式のうち、次のどれかを選ぶことになります。
+
+| 方式 | このアプリに当てはめると |
+|---|---|
+| SSR | リクエストのたびにサーバーで HTML を作る。投稿がすぐ反映される |
+| SSG | ビルド時に作るので、**メモを1件追加するたびに再ビルドと再デプロイが要る** |
+| ISR | 一定時間ごとに作り直す。反映は遅れるが、SSG の再ビルド問題は避けられる |
+
+React Router なら Framework mode、他に Next.js などの選択肢があります。**Framework mode にすれば自動的に SSR になるわけではなく、SSR にするか、あらかじめ HTML を作っておくかを、構成として選びます。**
 
 **ただし、それはこのチュートリアルの構成を作り直すことを意味します。**
 
@@ -364,7 +475,7 @@ CSR (Client Side Rendering) では、サーバーが返すのは空の HTML と 
 |---|---|
 | ルーティングの書き方 | [2.9](02_frontend.md#29-react-router-でページを分ける) の内容が別物になる |
 | データ取得の仕組み | `loader` / `action` が加わり、React Query との住み分けが必要（[6.5](06_api-integration.md#65-react-query-に載せる)） |
-| デプロイ構成 | フロント側もサーバーになる（[5.2](05_deploy.md#52-github-actions-を構築する)） |
+| デプロイ構成 | SSR を選ぶなら、フロント側もリクエストを処理するサーバーになる（[5.2](05_deploy.md#52-github-actions-を構築する)） |
 | CORS の前提 | 同一オリジンにできる可能性（[6.2](06_api-integration.md#62-cors)） |
 | 認証トークンの置き場所 | サーバー側から読めない localStorage は見直しが必要（[6.6](06_api-integration.md#66-認証情報の受け渡し)） |
 
@@ -374,7 +485,7 @@ CSR (Client Side Rendering) では、サーバーが返すのは空の HTML と 
 
 技術選定は、最初の判断が後から効いてきます。「まず CSR で作って、後から SSR にする」は、言葉ほど簡単ではありません。
 
-同時に、「常に SSR を選ぶべき」でもありません。ログインが前提のアプリなら、この問題はそもそも発生しません。今回のアプリで問題になったのは、**公開ページという要件を後から足したから**です。
+同時に、「常に SSR を選ぶべき」でもありません。ログインが前提のアプリなら、この問題はそもそも発生しません。**今回のアプリで問題が表に出たのは、[2章](02_frontend.md)で CSR を選んだあとに、この章で公開ページを作ったからです。** 公開ページは最初から予定にありましたが（[0章](00_introduction.md)）、**制約が形になって現れるのは、実際にその画面を作ったときです。**
 
 次に何かを作るときは、この判断を最初に行ってみてください。
 
