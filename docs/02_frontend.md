@@ -2,8 +2,6 @@
 
 この章では UI だけを作ります。データはブラウザのメモリ上に持ち、サーバーとは通信しません。バックエンドとの接続は [6章](06_api-integration.md)で行います。
 
-**この章の時点では「公開」という概念は登場しません。** 見せる相手がいないためです。公開機能は [7章](07_features.md)で追加します。
-
 作業は [1.8](01_setup.md#18-リポジトリと-workspace-を作る) で作ったリポジトリの中で行います。断りがない限り、コマンドはすべてリポジトリのルートで実行します。
 
 ## 2.1 `npm create vite@latest`
@@ -122,8 +120,6 @@ posts.filter((post) => post.id !== id) // 条件に合う要素だけの新し�
 
 JSX は JavaScript の中に HTML のような記法を書ける拡張構文です。TypeScript は JavaScript に型を追加した言語です。React では両者を組み合わせて書きます。
 
-この節も索引として使ってください。
-
 **扱う項目**
 
 | 項目 | 最初に出てくる場所 |
@@ -141,9 +137,9 @@ JSX は JavaScript の中に HTML のような記法を書ける拡張構文で�
 - ジェネリクスの自作、条件型、`keyof` などの型レベル操作
 - `enum`、名前空間、デコレータ
 
-網羅的に学びたい場合は TypeScript Handbook を参照してください。
+網羅的に学びたい場合は サバイバルTypeScript を参照してください。
 
-https://www.typescriptlang.org/ja/docs/handbook/intro.html
+https://typescriptbook.jp/
 
 **つまずきポイント**
 
