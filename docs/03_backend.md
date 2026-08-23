@@ -6,7 +6,7 @@
 
 このチュートリアルでは、バックエンドを Cloudflare Workers 上で動かし、データベースに Cloudflare D1 を使います。`wrangler` は Cloudflare が提供する CLI で、ローカル開発とデプロイの両方に使います。
 
-アカウントを作成します。メールアドレスとパスワードだけで登録でき、確認メールのリンクを踏めば完了です。
+アカウントを作成します。メールアドレスとパスワードだけで登録でき、確認メールのリンクを踏めば完了です。以下のリンクを開いてください。
 
 https://dash.cloudflare.com/sign-up
 
@@ -32,7 +32,10 @@ npx wrangler login
 | D1: 書き込み行数 | 100,000 行 / 日 |
 | D1: ストレージ | 合計 5 GB |
 
-参考: https://developers.cloudflare.com/workers/platform/pricing/ / https://developers.cloudflare.com/d1/platform/pricing/
+参照:
+
+- https://developers.cloudflare.com/workers/platform/pricing/
+- https://developers.cloudflare.com/d1/platform/pricing/
 
 **つまずきポイント**
 
