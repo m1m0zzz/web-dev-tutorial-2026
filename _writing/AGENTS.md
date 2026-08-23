@@ -48,22 +48,22 @@ echo author > .mode
 
   操作先を開かせる場合は「以下のリンクを開いてください。」とする。
 
-  読者が**開かなくても進める**もの（補足資料、網羅的なドキュメント、料金表）は `参照:` を付けて1行で書く。
+  読者が**開かなくても進める**もの（補足資料、網羅的なドキュメント、料金表）は `参考:` を付けて1行で書く。
 
   ```markdown
-  参照: https://developer.mozilla.org/ja/docs/Web/JavaScript/Guide
+  参考: https://developer.mozilla.org/ja/docs/Web/JavaScript/Guide
   ```
 
   複数あるときは箇条書きにする。
 
   ```markdown
-  参照:
+  参考:
 
   - https://developers.cloudflare.com/workers/platform/pricing/
   - https://developers.cloudflare.com/d1/platform/pricing/
   ```
 
-  **裸の URL を、説明も `参照:` も無しに置かないこと。** 読者がそれを開くべきかどうか判断できない
+  **裸の URL を、説明も `参考:` も無しに置かないこと。** 読者がそれを開くべきかどうか判断できない
 - **コード提示**: 初出の概念は全文、そこからの変更は差分・該当箇所のみ
 - **`TODO(執筆時)` マーカー**: 実機確認が必要な箇所の目印。埋めるときは必ず実際に動かし、出力を確認してからマーカーごと消す。**推測で埋めない**
 - **節番号はファイル名の数字と一致させる**（`docs/03_backend.md` の節は `3.1` から）

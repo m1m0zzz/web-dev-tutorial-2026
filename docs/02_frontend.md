@@ -8,7 +8,7 @@
 
 Vite は開発サーバーとビルドツールです。React のプロジェクトを一から設定するには、TypeScript のコンパイル、JSX の変換、開発サーバー、本番ビルドなど多数の設定が必要ですが、Vite のテンプレートはこれらを揃えた状態で生成してくれます。
 
-参照: https://ja.vite.dev/guide/
+参考: https://ja.vite.dev/guide/
 
 リポジトリのルートで実行します。
 
@@ -78,7 +78,7 @@ React のコードは、比較的新しい JavaScript の記法を前提に書�
 
 網羅的に学びたい場合は MDN が使えます。
 
-参照: https://developer.mozilla.org/ja/docs/Web/JavaScript/Guide
+参考: https://developer.mozilla.org/ja/docs/Web/JavaScript/Guide
 
 **この先の章に実際に出てくる形**
 
@@ -139,7 +139,7 @@ JSX は JavaScript の中に HTML のような記法を書ける拡張構文で�
 
 網羅的に学びたい場合はサバイバル TypeScript が使えます。
 
-参照: https://typescriptbook.jp/
+参考: https://typescriptbook.jp/
 
 **つまずきポイント**
 
@@ -396,7 +396,7 @@ const newPost: Post = {
 
 **この関数は「安全なコンテキスト」でのみ使えます。** HTTPS のページと `http://localhost` は安全なコンテキストとして扱われるため、開発サーバーでも本番でも問題ありません。ただし、スマートフォンなどから `http://192.168.x.x:5173` の形でアクセスすると安全なコンテキストにならず、`crypto.randomUUID is not a function` になります。
 
-参照: https://developer.mozilla.org/ja/docs/Web/API/Crypto/randomUUID
+参考: https://developer.mozilla.org/ja/docs/Web/API/Crypto/randomUUID
 
 なお、この id は [3章](03_backend.md)以降サーバー側で生成するようになります。ここでの id はブラウザのメモリ上にしか存在しません。
 
@@ -796,7 +796,7 @@ TODO(執筆時) 図: `absolute` が「最も近い `static` 以外の祖先」�
 > - **Flexbox の `justify-content` と `align-items` は、`flex-direction` によって向きが入れ替わります**
 > - 思ったところに要素が無いときは、ブラウザの開発者ツールで要素を選び、ボックスモデルの図（content / padding / border / margin が色分けされたもの）を見てください。どの層が効いているかがそのまま見えます
 
-参照: https://developer.mozilla.org/ja/docs/Learn_web_development/Core/CSS_layout
+参考: https://developer.mozilla.org/ja/docs/Learn_web_development/Core/CSS_layout
 
 **コード**
 
@@ -930,7 +930,7 @@ React Router の **Declarative mode**（`<BrowserRouter>` + `<Routes>`）を使�
 > - 状態はメモリ上にあるため、リロードすると消えます。これは [6章](06_api-integration.md)でバックエンドに繋ぐまでの一時的な制約です
 > - **React Router には複数のモードがあります。** 検索して出てくる記事が Framework mode を前提にしていることがあり、`loader` や `action` の話が出てきたらそれは別のモードの話です
 
-参照: https://reactrouter.com/start/declarative/installation
+参考: https://reactrouter.com/start/declarative/installation
 
 **バージョンとモードの呼称**
 
