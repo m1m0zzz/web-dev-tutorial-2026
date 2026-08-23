@@ -102,7 +102,7 @@ https://herdr.dev/
 
 インデントの幅、改行コード、末尾の空白の扱いを、**複数のエディタで共有する**ためのファイルです。`indent_style`、`end_of_line`、`trim_trailing_whitespace` あたりをよく使います。**エディタが対応していて初めて効きます**（VS Code は拡張機能を入れると読むようになります）。
 
-参照: https://editorconfig.org/
+参考: https://editorconfig.org/
 
 **[2.10](02_frontend.md#210-oxlint--oxfmt-のセットアップ) の oxfmt と役割が重なりますが、対象が違います。** oxfmt が整形するのは JavaScript / TypeScript / JSON / CSS などで、`.editorconfig` はそれ以外のファイル（設定ファイル、Markdown、スクリプト）にも効きます。**複数人で書くリポジトリでは入れておくと、差分が空白だけで汚れることを防げます。**
 
