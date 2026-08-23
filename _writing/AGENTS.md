@@ -169,5 +169,4 @@ git rebase -i --root main        # 該当章のコミットを edit → 修正 �
 
 ## コミット
 
-- **`git commit` に `-c user.name=` / `-c user.email=` を付けて identity を上書きしないこと。** 素の `git commit` を使い、リポジトリの `git config` の値をそのまま使う
 - 章のコードを変えるコミットは、メッセージに「N章」を含める。`_writing/sync-chapters.sh` がこの文字列で章のコミットを探します
