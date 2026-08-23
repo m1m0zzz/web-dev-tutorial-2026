@@ -6,7 +6,6 @@
 |---|---|
 | [`AGENTS.md`](AGENTS.md) | 執筆時の指示（節の書式、参照リンク、調査の原則など）。`CLAUDE.md` はこれへのシンボリックリンク |
 | [`sync-chapters.sh`](sync-chapters.sh) | 章ブランチを `main` の履歴に合わせて付け直す |
-| [`codex-review.md`](codex-review.md) | codex による各章のコードレビュー結果と、その分類 |
 
 ## 最初に: `.mode` を作る
 
@@ -211,91 +210,6 @@ git rebase --continue
 
 `--push` は `main` と章ブランチ 7 本をまとめて force push します（`--force-with-lease`）。**章ブランチは共同作業用ではなく公開スナップショットなので、force push して構いません。** 読者は clone し直すか、`git fetch --all` で追随できます。
 
-## これからやること
-
-- [x] **2.1「リポジトリと workspace を作る」を1章に移す** → [1.8](../docs/01_setup.md#18-リポジトリと-workspace-を作る)。2章は 2.2 以降が1つずつ繰り上がった
-- [x] **Claude Code のセットアップ（9.1）を1章に移す** → [1.9](../docs/01_setup.md#19-任意-claude-code--codex)。その後 Codex も併記し、どちらでも可にした
-- [x] **`ghcd`（`ghq` + `fzf`）を最後の章に書く** → [9.1](../docs/09_devtools.md#91-ghq--fzf-でリポジトリを移動する)。[1.7](../docs/01_setup.md#17-任意-ghq) の ghq の節から参照している
-- [x] **各章のコードを codex でレビューする** → [`codex-review.md`](codex-review.md)。33件を分類し、**「対応する」11件と「要検証」4件は対応済み**（うち1件は指摘のほうが誤りだった）。残りは「対応しない」に分類したもの
-- [x] **`AGENTS.md` を正とし、`CLAUDE.md` はそのシンボリックリンクにする** → ルートと `_writing/` の両方
-- [x] **章ブランチに checkout しても `AGENTS.md` / `CLAUDE.md` が残るようにする** → 1章のコミットに入れた（ケース5）
-
-## 記事のブラッシュアップ
-
-**節ごとに1つずつ見直す。** 1つの章の節がすべて終わったら、その章を codex に読者視点でレビューさせ、結果を反映してから章のチェックを付ける。
-
-- 節のチェック: その節の見直しが終わった時点で付ける
-- 章のチェック: 全節 + codex のレビュー反映まで終わったら付ける
-- 記事の変更がコードに及ぶ場合は、[どのコミットに入れるか](#どのコミットに入れるか)に従う（章のコードを直すならケース2）
-- codex のレビュー結果は `brushups/N_codex-review.md` に、**対応済み / 保留 / 著者判断 / 対応しない / 他の章へ持ち越し**で分類して残す。コードのレビュー結果（[`codex-review.md`](codex-review.md)）とは別ファイル
-
-- [x] **[イントロダクション](../docs/00_introduction.md)** → [レビュー結果](../brushups/0_codex-review.md)
-  - [x] この記事について
-  - [x] 目次
-- [x] **[1 環境構築](../docs/01_setup.md)** → [レビュー結果](../brushups/1_codex-review.md)
-  - [x] 1.1 WSL2 (Ubuntu)
-  - [x] 1.2 VS Code + WSL 拡張
-  - [x] 1.3 nvm
-  - [x] 1.4 サプライチェーン攻撃の対策
-  - [x] 1.5 gh (GitHub CLI)
-  - [x] 1.6 ターミナル操作に慣れる
-  - [x] 1.7 任意) ghq
-  - [x] 1.8 リポジトリと workspace を作る
-  - [x] 1.9 任意) Claude Code / Codex
-- [x] **[2 React でフロントエンドを作る](../docs/02_frontend.md)** → [レビュー結果](../brushups/2_codex-review.md)
-  - [x] 2.1 `npm create vite@latest`
-  - [x] 2.2 モダン JavaScript の前提知識
-  - [x] 2.3 TypeScript と JSX の読み方
-  - [x] 2.4 カウンター
-  - [x] 2.5 タイマー
-  - [x] 2.6 編集可能なリスト (メモリスト)
-  - [x] 2.7 コンポーネント分離
-  - [x] 2.8 CSS 基礎
-  - [x] 2.9 React Router でページを分ける
-  - [x] 2.10 oxlint / oxfmt のセットアップ
-  - [x] 2.11 任意) React の仕組み / なぜ SPA なのか
-  - [x] 2.12 任意) CSR / SSG / SSR / ISR
-- [x] **[3 Hono でバックエンドを作る](../docs/03_backend.md)** → [レビュー結果](../brushups/3_codex-review.md)
-  - [x] 3.1 Cloudflare アカウント作成 / `wrangler login`
-  - [x] 3.2 `npm create hono@latest`
-  - [x] 3.3 最初のエンドポイント `/health`
-  - [x] 3.4 ブラウザと curl から叩く
-  - [x] 3.5 環境変数とシークレット
-  - [x] 3.6 Drizzle + D1 で `posts` テーブルを作る
-  - [x] 3.7 入力バリデーション
-  - [x] 3.8 `posts` の CRUD エンドポイント
-  - [x] 3.9 認証・認可の基礎
-  - [x] 3.10 Better Auth を導入し、`posts` をユーザーに紐づける
-  - [x] 3.11 公開用のエンドポイント
-- [x] **[4 テストを書く](../docs/04_test.md)** → [レビュー結果](../brushups/4_codex-review.md)
-  - [x] 4.1 フロントエンドのテスト
-  - [x] 4.2 バックエンドのテスト
-- [x] **[5 デプロイする](../docs/05_deploy.md)** → [レビュー結果](../brushups/5_codex-review.md)
-  - [x] 5.1 環境変数・シークレットの置き場所を決める
-  - [x] 5.2 GitHub Actions を構築する
-- [x] **[6 フロントから API を呼ぶ](../docs/06_api-integration.md)** → [レビュー結果](../brushups/6_codex-review.md)
-  - [x] 6.1 `async` / `await` と Promise
-  - [x] 6.2 CORS
-  - [x] 6.3 素の fetch で呼ぶ
-  - [x] 6.4 Hono RPC で型安全に呼ぶ
-  - [x] 6.5 React Query に載せる
-  - [x] 6.6 認証情報の受け渡し
-  - [x] 6.7 環境変数を追加して再デプロイ
-- [x] **[7 機能を拡張する](../docs/07_features.md)** → [レビュー結果](../brushups/7_codex-review.md)
-  - [x] 7.1 公開・非公開の切り替え
-  - [x] 7.2 未ログインでも見られるページの土台を作る
-  - [x] 7.3 公開一覧ページ `/public`
-  - [x] 7.4 ユーザーページ `/users/:userId`
-  - [x] 7.5 CSR の限界
-- [x] **[8 E2E テストを行う](../docs/08_e2e.md)** → [レビュー結果](../brushups/8_codex-review.md)
-  - [x] 8.1 Playwright のセットアップ
-  - [x] 8.2 2つの開発サーバーとデータベースを用意する
-  - [x] 8.3 テストを書く
-  - [x] 8.4 CI で実行する
-- [x] **[9 任意) 開発環境をさらに整える](../docs/09_devtools.md)** → [レビュー結果](../brushups/9_codex-review.md)
-  - [x] 9.1 ghq + fzf でリポジトリを移動する
-  - [x] 9.2 herdr
-  - [x] 9.3 その他
 
 ## 確認済みの事項
 
@@ -317,18 +231,6 @@ git rebase --continue
 | [6.4](../docs/06_api-integration.md#64-hono-rpc-で型安全に呼ぶ) | RPC の型共有は `tsconfig` の `paths` だけで足りる（project references 不要） |
 | [6.2](../docs/06_api-integration.md#62-cors) | CORS に加えて Better Auth の `trustedOrigins` が必要 |
 | 8 | Playwright 1.62。`webServer` は `globalSetup` より先に起動する |
-
-### safe-chain の48時間ルールで CI が落ちることがある
-
-`check` ジョブの `npm ci` が `403 blocked by safe-chain direct download minimum package age` で落ちることがあります。**lock に、公開から48時間経っていないバージョンが入っているときです。**
-
-2026-08-21 に実際に起きました（`vite@8.2.2` が 2026-08-20T04:14Z 公開）。厄介なのは、**`actions/setup-node` の npm キャッシュが効いている間は表面化しない**ことです。キャッシュのキーは `package-lock.json` のハッシュなので、lock を1行でも変えるとキャッシュミスになり、そこで初めてダウンロードが走って弾かれます。
-
-- 対処1: そのまま待つ。48時間を過ぎれば解消します
-- 対処2: lock を48時間以上前のバージョンに戻す（Renovate がすぐ上げ直すので一時しのぎ）
-- 対処3: CI の safe-chain に `--safe-chain-skip-minimum-package-age` を渡す。**記事 1.4 で教えている防御を CI で外すことになるので、推奨しません**
-
-`chapters` ジョブと `e2e` ジョブは safe-chain を入れていないため、この影響を受けません。**逆に言うと、そこには防御がありません**（codex のレビューでも指摘されています）。
 
 ## 未確認の事項
 
