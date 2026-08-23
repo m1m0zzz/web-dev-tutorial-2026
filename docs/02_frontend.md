@@ -1172,12 +1172,24 @@ rm apps/web/README.md
 
 **oxlint の設定**
 
-ルートに移した `.oxlintrc.json` を書き換えます。
+ルートに移した `.oxlintrc.json` は、`create-vite` が生成したままの状態です。
 
 ```json
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "ignorePatterns": ["**/dist", "**/.wrangler", "**/worker-configuration.d.ts"],
+  "plugins": ["react", "typescript", "oxc"],
+  "rules": {
+    "react/rules-of-hooks": "error",
+    "react/only-export-components": ["warn", { "allowConstantExport": true }]
+  }
+}
+```
+
+**これを土台に、このプロジェクトの事情に合わせて足していきます。** 変えるのは2点です。**React のルールを `apps/web` だけに限定すること**（[3章](03_backend.md)で作る `apps/api` に React は無いため）と、**ルールを2つ足すこと**です。
+
+```json
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
   "rules": {
     "typescript/no-explicit-any": "error"
   },
@@ -1196,11 +1208,13 @@ rm apps/web/README.md
 }
 ```
 
+**トップレベルの `plugins` は消しました。** `typescript` と `oxc` は元から有効で、`react` は `overrides` の中で有効にしているためです。**`plugins` は「これだけを使う」という指定なので、書くと既定で有効なプラグイン（`unicorn` など）が外れます。**
+
 **oxlint はルールを「カテゴリ」で管理します。** 既定で有効なのは `correctness`（明らかに間違っている、または無意味な書き方）だけです。`suspicious`（間違いの可能性が高い）や `pedantic`（厳しめ。誤検出もある）を足すこともできますが、増やすほど「直すべきか無視すべきか」の判断を迫られる警告が増えます。まずは既定のままで十分です。
 
 `rules` に書いたのは、カテゴリに入っていないルールを個別に有効にする例です。`typescript/no-explicit-any` は `any` を禁止します。型を諦めた箇所が見えるようになります。
 
-`overrides` で React 向けのルールを `apps/web/**` に限定しているのは、`apps/api` に React が無いためです。**`plugins` に `react` を足しても、既定で有効なプラグイン（TypeScript など）が無効になることはありません。** 足し算です。
+`overrides` の中の `plugins` は足し算です。**`react` を足しても、既定で有効なプラグイン（TypeScript など）が無効になることはありません。** トップレベルに書いたときと挙動が違う点に注意してください。
 
 | ルール | 何を防ぐか |
 |---|---|
@@ -1210,7 +1224,7 @@ rm apps/web/README.md
 
 `env: { "browser": true }` は、`window` や `document` をグローバル変数として認識させる指定です。これが無いと「そんな変数は無い」と言われます。
 
-**`ignorePatterns` に入れている `worker-configuration.d.ts` は、[3.5](03_backend.md#35-環境変数とシークレット) で `wrangler` が自動生成するファイルです。** 生成物を Lint しても直しようがありません。
+**除外するファイルの指定（`ignorePatterns`）は、まだ要りません。** oxlint は **`.gitignore` を自動で読む**ので、`dist` や `.wrangler` のようにコミットしないものは何も書かなくても対象外です。書く必要があるのは、**Git で管理しているのに対象から外したいもの**だけで、それが出てくるのは [3.5](03_backend.md#35-環境変数とシークレット) です。
 
 **oxfmt の設定**
 
@@ -1223,15 +1237,22 @@ rm apps/web/README.md
   "singleQuote": true,
   "printWidth": 80,
   "sortPackageJson": false,
-  "ignorePatterns": ["dist", ".wrangler", "package-lock.json", "*.md"]
+  "ignorePatterns": ["*.md"]
 }
 ```
+
+**`create-vite` は oxfmt の設定を生成しないので、こちらは1から作ります。**
 
 `semi`（行末のセミコロン）と `singleQuote`（文字列の引用符）は好みです。この記事のコードは、この2つの設定で整形したものに揃えてあります。`printWidth` は折り返す行の長さで、oxfmt の既定は 100 です。
 
 `sortPackageJson` を `false` にしているのは、**既定では `package.json` のキーを決まった順序に並び替えるためです。** npm が書いた内容が整形のたびに動くと、自分で足した行がどれなのか分かりにくくなります。
 
-`ignorePatterns` に `*.md` を入れているのは、**`README.md` や [1.9](01_setup.md#19-任意-claude-code--codex) の `AGENTS.md` まで書き換えられるのを避ける**ためです。oxfmt は Markdown も整形の対象にします。[3章](03_backend.md)以降で生成物が増えたら、ここに足していきます。
+`ignorePatterns` に `*.md` を入れているのは、**`README.md` や [1.9](01_setup.md#19-任意-claude-code--codex) の `AGENTS.md` まで書き換えられるのを避ける**ためです。oxfmt は Markdown も整形の対象にします。
+
+**それ以外は書いていません。** oxfmt も **`.gitignore` を自動で読み**、さらに **`package-lock.json` のようなロックファイルは既定で対象外**です（`pnpm-lock.yaml`、`yarn.lock`、`Cargo.lock` なども同じ）。**ここに書く必要があるのは、Git で管理しているのに整形したくないファイルだけです。**
+
+> [!TIP]
+> **`.gitignore` に載っているファイルでも、名指しで指定すれば整形されます。** 除外を確実にしたい場合は `ignorePatterns` に書いてください。この記事の使い方（ディレクトリ単位での実行）では違いは出ません。
 
 **スクリプト**
 
