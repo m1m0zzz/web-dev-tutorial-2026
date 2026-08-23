@@ -24,7 +24,7 @@
 
 **Cloudflare の API トークン**
 
-CI からデプロイするには、Cloudflare を操作する権限をトークンの形で GitHub に預けます。
+CI からデプロイするには、Cloudflare を操作する権限をトークンの形で GitHub に預けます。以下のリンクを開いてください。
 
 https://dash.cloudflare.com/profile/api-tokens
 
