@@ -8,6 +8,8 @@
 
 Node.js のツールチェーンは Linux 環境を前提に作られているものが多く、Windows ネイティブで動かすとパスの区切り文字や改行コード、シンボリックリンクの扱いで問題が出ます。Linux 環境を Windows 上に用意することで、これらを回避します。
 
+インストール方法は以下のリンクを参照してください。
+
 https://learn.microsoft.com/ja-jp/windows/wsl/install
 
 インストール後、Ubuntu を起動して以下を実行します。
@@ -28,19 +30,19 @@ sudo apt install -y build-essential
 > - `apt upgrade` は途中で「続行しますか?」と確認を求めます。`y` を入力してください。初回は数分かかることがあります
 > - **`build-essential` も同時に入れておいてください。** C/C++ のコンパイラ一式です。npm パッケージの中には、インストール時に C++ のコードをその場でコンパイルするもの（ネイティブモジュール）が含まれることがあり、コンパイラが無いと `node-gyp` のエラーで失敗します。エラーメッセージから原因を特定しづらいので、先に入れておくほうが安全です
 
-Microsoft は WSL 上での開発環境構築ガイドも公開しています。Git や認証まわりも含めて一通り確認したい場合はこちらを参照してください。
+Microsoft は WSL 上での開発環境構築ガイドも公開しています。Git や認証まわりも含めて一通り確認したい場合に使えます。
 
-https://learn.microsoft.com/ja-jp/windows/wsl/setup/environment
+参照: https://learn.microsoft.com/ja-jp/windows/wsl/setup/environment
 
 ## 1.2 VS Code + WSL 拡張
 
 VS Code 本体は Windows 側にインストールし、WSL 拡張を通して Linux 側のファイルを編集します。この構成にすると、VS Code の統合ターミナルがそのまま Ubuntu のシェルになり、拡張機能も Linux 側で動きます。
 
-本体の入手先はこちらです。
+インストール方法は以下のリンクを参照してください。
 
 https://code.visualstudio.com/
 
-WSL 拡張の導入と使い方は公式ドキュメントにあります。
+WSL 拡張の導入と使い方は、以下のリンクを参照してください。
 
 https://code.visualstudio.com/docs/remote/wsl
 
@@ -61,6 +63,8 @@ Ubuntu のターミナルで `code .` を実行すると VS Code が開き、左
 
 **nvm は、その Node.js のバージョンを切り替えるためのツールです。** プロジェクトごとに要求される Node.js のバージョンは異なり、複数のプロジェクトを並行して触ると必ず衝突します。nvm を入れておくと、ディレクトリを移動するだけで適切なバージョンに切り替わる状態を作れます。
 
+インストール方法は以下のリンクを参照してください。
+
 https://github.com/nvm-sh/nvm#install--update-script
 
 新しいターミナルを開いて `command -v nvm` を実行し、`nvm` と表示されれば成功です。
@@ -76,7 +80,7 @@ https://github.com/nvm-sh/nvm#install--update-script
 
 LTS (Long Term Support) は長期サポート対象のリリースラインで、偶数バージョンが該当します。特別な理由がない限り LTS を使います。
 
-https://github.com/nvm-sh/nvm#long-term-support
+参照: https://github.com/nvm-sh/nvm#long-term-support
 
 ```bash
 nvm install --lts
@@ -95,7 +99,7 @@ nvm alias default 'lts/*'
 
 ### `cd` したときに自動でバージョンを切り替える
 
-プロジェクトのルートに `.nvmrc` というファイルを置くと、そのプロジェクトが要求する Node.js のバージョンを宣言できます。ただし標準では、ディレクトリを移動したあとに `nvm use` を手動で叩く必要があります。これを自動化します。
+プロジェクトのルートに `.nvmrc` というファイルを置くと、そのプロジェクトが要求する Node.js のバージョンを宣言できます。ただし標準では、ディレクトリを移動したあとに `nvm use` を手動で叩く必要があります。これを自動化します。設定方法は以下のリンクを参照してください。
 
 https://github.com/nvm-sh/nvm#bash
 
@@ -187,6 +191,8 @@ npm warn install-scripts Run `npm install-scripts ls` to review, or `npm install
 
 safe-chain は Aikido Security が提供する OSS の CLI ツールで、`npm` や `npx` などのコマンドをラップし、インストールしようとしているパッケージがマルウェアとして報告されていないかを事前に確認します。無償で、アカウント登録もトークンも不要です。
 
+インストール方法は以下のリンクを参照してください。
+
 https://github.com/AikidoSec/safe-chain#installation
 
 **インストールは、配布されているシェルスクリプトを取得して実行する形です。** サプライチェーン攻撃を扱う節でこれをやるのは落ち着かないところですが、**取得元が公式のリリースであることを URL で確認したうえで実行してください。** [5.2](05_deploy.md#52-github-actions-を構築する) の CI では、同じスクリプトをバージョン固定の URL から取得し、SHA-256 を照合してから実行しています。中身が差し替わっていないことを機械的に確認する方法です。
@@ -211,6 +217,8 @@ npm install safe-chain-test
 ## 1.5 gh (GitHub CLI)
 
 GitHub をコマンドラインから操作するツールです。この記事では主に認証のために使います。`gh auth login` を実行すると、GitHub CLI 自体の認証に加えて、`git push` する際の認証も同時に設定できます。ブラウザでトークンを発行して手動で設定する手間がなくなります。
+
+インストール方法は以下のリンクを参照してください。
 
 https://github.com/cli/cli/blob/trunk/docs/install_linux.md
 
@@ -244,7 +252,7 @@ git config --global user.email "you@example.com"
 
 **この値はコミットに記録され、Public リポジトリなら誰でも見られます。** メールアドレスを公開したくない場合は、GitHub が発行する `noreply` アドレスを使えます。
 
-https://docs.github.com/ja/account-and-profile/setting-up-and-managing-your-personal-account-on-github/managing-email-preferences/setting-your-commit-email-address
+参照: https://docs.github.com/ja/account-and-profile/setting-up-and-managing-your-personal-account-on-github/managing-email-preferences/setting-your-commit-email-address
 
 **つまずきポイント**
 
@@ -288,6 +296,8 @@ https://docs.github.com/ja/account-and-profile/setting-up-and-managing-your-pers
 
 リポジトリを `~/ghq/github.com/{ユーザー名}/{リポジトリ名}` という規則的なパスに配置してくれるツールです。リポジトリが増えてくると、どこにクローンしたか分からなくなる問題を解消できます。
 
+インストール方法は以下のリンクを参照してください。
+
 https://github.com/x-motemen/ghq#installation
 
 `ghq get <リポジトリURL>` でクローンでき、`ghq list` に表示されれば成功です。
@@ -302,7 +312,7 @@ https://github.com/x-motemen/ghq#installation
 
 フロントエンドとバックエンドを1つのリポジトリで管理します。npm workspaces を使うことで、依存のインストールを一度で済ませ、[6章](06_api-integration.md)でフロントからバックエンドの型を参照できるようにします。
 
-GitHub の Web UI から新規リポジトリを作成します。
+GitHub の Web UI から新規リポジトリを作成します。以下のリンクを開いてください。
 
 https://github.com/new
 
@@ -473,6 +483,8 @@ git push
 
 **Claude Code**
 
+インストール方法は以下のリンクを参照してください。
+
 https://code.claude.com/docs/en/setup
 
 ```bash
@@ -482,6 +494,8 @@ curl -fsSL https://claude.ai/install.sh | bash
 `claude --version` がバージョンを表示し、`claude doctor` が設定の診断結果を表示すれば成功です。プロジェクトのディレクトリで `claude` を実行すると、対話セッションが始まります。
 
 **Codex**
+
+インストール方法は以下のリンクを参照してください。
 
 https://developers.openai.com/codex/cli
 
