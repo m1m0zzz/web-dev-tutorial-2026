@@ -32,7 +32,7 @@ sudo apt install -y build-essential
 
 Microsoft は WSL 上での開発環境構築ガイドも公開しています。Git や認証まわりも含めて一通り確認したい場合に使えます。
 
-参照: https://learn.microsoft.com/ja-jp/windows/wsl/setup/environment
+参考: https://learn.microsoft.com/ja-jp/windows/wsl/setup/environment
 
 ## 1.2 VS Code + WSL 拡張
 
@@ -80,7 +80,7 @@ https://github.com/nvm-sh/nvm#install--update-script
 
 LTS (Long Term Support) は長期サポート対象のリリースラインで、偶数バージョンが該当します。特別な理由がない限り LTS を使います。
 
-参照: https://github.com/nvm-sh/nvm#long-term-support
+参考: https://github.com/nvm-sh/nvm#long-term-support
 
 ```bash
 nvm install --lts
@@ -252,7 +252,7 @@ git config --global user.email "you@example.com"
 
 **この値はコミットに記録され、Public リポジトリなら誰でも見られます。** メールアドレスを公開したくない場合は、GitHub が発行する `noreply` アドレスを使えます。
 
-参照: https://docs.github.com/ja/account-and-profile/setting-up-and-managing-your-personal-account-on-github/managing-email-preferences/setting-your-commit-email-address
+参考: https://docs.github.com/ja/account-and-profile/setting-up-and-managing-your-personal-account-on-github/managing-email-preferences/setting-your-commit-email-address
 
 **つまずきポイント**
 

@@ -60,7 +60,7 @@ Windows + WSL2 (Ubuntu) を前提としています。macOS / Linux を使って
 
 **この記事の範囲は、すべて無料でできます。** Cloudflare のアカウントは作りますが（[3.1](03_backend.md#31-cloudflare-アカウント作成--wrangler-login)）、使うのは無料プランの範囲です。GitHub も Public リポジトリなら Actions の実行を含めて無料です。Private リポジトリの場合も、GitHub Free には Actions の標準ランナーが月 2,000 分含まれます。この記事で組む CI がこれを使い切ることはありません。
 
-参照:
+参考:
 
 - https://developers.cloudflare.com/workers/platform/pricing/
 - https://docs.github.com/ja/billing/managing-billing-for-your-products/managing-billing-for-github-actions/about-billing-for-github-actions

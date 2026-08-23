@@ -32,7 +32,7 @@ npx wrangler login
 | D1: 書き込み行数 | 100,000 行 / 日 |
 | D1: ストレージ | 合計 5 GB |
 
-参照:
+参考:
 
 - https://developers.cloudflare.com/workers/platform/pricing/
 - https://developers.cloudflare.com/d1/platform/pricing/
