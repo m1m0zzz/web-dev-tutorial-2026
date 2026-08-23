@@ -283,6 +283,35 @@ interface __BaseEnv_CloudflareBindings {
 
 `vars` の値は**リテラル型**（値そのものが型になる）、`.dev.vars` のキーは `string` 型になります。前者は「`wrangler.jsonc` に書いたその値しか入らない」という意味の型なので、本番で別の値を入れる前提のものを厳密に比較するようなコードを書くと、意図しない型エラーになることがあります。
 
+**生成物を Lint と整形の対象から外す**
+
+`worker-configuration.d.ts` は `wrangler` が作るファイルで、**コミットはしますが手で直すものではありません。** [2.10](02_frontend.md#210-oxlint--oxfmt-のセットアップ) で作った設定に、除外の指定を足します。
+
+`.oxlintrc.json`:
+
+```json
+{
+  "ignorePatterns": ["**/worker-configuration.d.ts"]
+}
+```
+
+`.oxfmtrc.json`:
+
+```json
+{
+  "ignorePatterns": [
+    "*.md",
+    "apps/api/drizzle",
+    "apps/api/worker-configuration.d.ts",
+    "apps/api/src/db/auth-schema.ts"
+  ]
+}
+```
+
+**`apps/api/drizzle` と `auth-schema.ts` は、この時点ではまだありません。** [3.6](#36-drizzle--d1-で-posts-テーブルを作る) と [3.10](#310-better-auth-を導入しposts-をユーザーに紐づける) で生成されるものです。[1.8](01_setup.md#18-リポジトリと-workspace-を作る) の `.gitignore` と同じ考え方で、**あとで必ず要るものは先に書いておきます。**
+
+**コミットしないもの（`dist`、`.wrangler` など）を書く必要はありません。** どちらのツールも `.gitignore` を読みます。**ここに書くのは「Git で管理しているのに、対象から外したいもの」だけです。**
+
 **シークレットが読めているかを確かめるときは、値そのものを返さないでください。** 一時的に真偽値だけを返して確認し、確認できたら消します。
 
 ```ts
