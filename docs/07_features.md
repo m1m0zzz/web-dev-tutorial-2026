@@ -148,52 +148,14 @@ const handleCopy = async () => {
 
 [6.6](06_api-integration.md#66-認証情報の受け渡し) の時点で、`/login` と `/signup` だけは未ログインでも開けるようになっています。**ここでやるのは、「メモを見せるページ」を未ログインでも開けるようにすることです。** `/posts/:id` を認証必須の外へ出し、公開ページ用のルートを足します。
 
-**ルートを2種類に分ける**
+**共通のヘッダーを `Layout` にまとめる**
 
-`App.tsx` を、認証が必要なページとそうでないページに分けます。`RequireAuth` は [6.6](06_api-integration.md#66-認証情報の受け渡し) で入れたものと同じです。
-
-```tsx
-function RequireAuth({ children }: { children: React.ReactNode }) {
-  const { data: user, isPending } = useSession()
-
-  if (isPending) return <main>読み込み中…</main>
-  if (user === null || user === undefined)
-    return <Navigate to="/login" replace />
-
-  return <>{children}</>
-}
-```
-
-**変わるのは、どのルートを `RequireAuth` で囲むかです。** `/posts/:id` を外に出し、`/public` と `/users/:userId` を足します。`App.tsx` の import には `Link`（ヘッダー用）と、新しい2つのページを追加してください。
+どのページにも同じヘッダーを出したいので、`apps/web/src/components/Layout.tsx` を作ります。ヘッダーの中身は、ログインしているかどうかで変わります。
 
 ```tsx
-<Routes>
-  {/* 未ログインでも見られるページ */}
-  <Route path="/login" element={<LoginPage />} />
-  <Route path="/signup" element={<SignUpPage />} />
-  <Route path="/public" element={<PublicPostsPage />} />
-  <Route path="/users/:userId" element={<UserPage />} />
-  <Route path="/posts/:id" element={<PostDetailPage />} />
+import { Link, Outlet } from 'react-router'
+import { useSession, useSignOut } from '../hooks/useSession'
 
-  {/* ログインが必要なページ */}
-  <Route
-    path="/"
-    element={
-      <RequireAuth>
-        <PostListPage />
-      </RequireAuth>
-    }
-  />
-</Routes>
-```
-
-**`isPending` の分岐を飛ばさないでください。** セッションの確認は非同期なので、**ログイン済みでも最初の一瞬は「ユーザーが未確定」の状態**になります。ここで未ログインとして扱うと、リロードのたびにログイン画面へ飛ばされます。
-
-`<Navigate to="/login" replace />` の `replace` は、履歴を残さずに置き換える指定です。付けないと、ブラウザの「戻る」で元のページに戻ろうとして、またリダイレクトされる、という繰り返しになります。
-
-**ヘッダーの出し分け**
-
-```tsx
 function Header() {
   const { data: user, isPending } = useSession()
   const signOut = useSignOut()
@@ -216,7 +178,65 @@ function Header() {
     </header>
   )
 }
+
+// Outlet には、このレイアウトの中に入るページが描画される
+export function Layout() {
+  return (
+    <>
+      <Header />
+      <Outlet />
+    </>
+  )
+}
 ```
+
+**`<Outlet />` は「ここに子のルートを描画する」という目印です。** React Router では `<Route>` を入れ子にでき、外側の `element` が `<Outlet />` を置いた場所に、内側のページが入ります。共通の見た目を1か所に書いて、ページごとに繰り返さずに済ませるための仕組みです。
+
+**ルートを2種類に分ける**
+
+`App.tsx` を、認証が必要なページとそうでないページに分けます。**ログインを必須にする判定も、同じ入れ子の仕組みに載せます。** [6.6](06_api-integration.md#66-認証情報の受け渡し) で書いた「未ログインならログイン画面へ送る」処理を、`<Outlet />` を返すコンポーネントにしてください。
+
+```tsx
+function RequireAuth() {
+  const { data: user, isPending } = useSession()
+
+  if (isPending) return <main>読み込み中…</main>
+  if (user === null || user === undefined)
+    return <Navigate to="/login" replace />
+
+  return <Outlet />
+}
+```
+
+こうしておくと、**守りたいページが増えても `<Route>` を1行足すだけ**になります。ページを1つずつ `<RequireAuth>` で包む必要はありません。
+
+**`isPending` の分岐を飛ばさないでください。** セッションの確認は非同期なので、**ログイン済みでも最初の一瞬は「ユーザーが未確定」の状態**になります。ここで未ログインとして扱うと、リロードのたびにログイン画面へ飛ばされます。
+
+`<Navigate to="/login" replace />` の `replace` は、履歴を残さずに置き換える指定です。付けないと、ブラウザの「戻る」で元のページに戻ろうとして、またリダイレクトされる、という繰り返しになります。
+
+`App.tsx` はルートの定義だけを持つ形になります。`/posts/:id` を認証必須の外へ出し、`/public` と `/users/:userId` を足します。import には `Layout` と、新しい2つのページを追加してください。
+
+```tsx
+<Routes>
+  <Route element={<Layout />}>
+    {/* 未ログインでも見られるページ */}
+    <Route path="/login" element={<LoginPage />} />
+    <Route path="/signup" element={<SignUpPage />} />
+    <Route path="/public" element={<PublicPostsPage />} />
+    <Route path="/users/:userId" element={<UserPage />} />
+    <Route path="/posts/:id" element={<PostDetailPage />} />
+
+    {/* ログインが必要なページ */}
+    <Route element={<RequireAuth />}>
+      <Route path="/" element={<PostListPage />} />
+    </Route>
+  </Route>
+</Routes>
+```
+
+**`path` を持たない `<Route>` は、URL には現れません。** `Layout` と `RequireAuth` の2つがそれで、「この中のページに共通で何かをかぶせる」ためだけに存在します（レイアウトルートと呼ばれます）。`/` を開いたときに描画されるのは、`Layout` → `RequireAuth` → `PostListPage` という入れ子です。
+
+**ヘッダーは `<Routes>` の外に置かないでください。** [6.6](06_api-integration.md#66-認証情報の受け渡し) までは `<Routes>` の外に並べていましたが、そこは React Router の管理下ではないので、あとで「ヘッダーを出さないページ」を作りたくなっても出し分けられません。ルートの木に入れておけば、そのページの `<Route>` を `Layout` の外へ移すだけで済みます。
 
 **同じページを、見る人によって出し分ける**
 
