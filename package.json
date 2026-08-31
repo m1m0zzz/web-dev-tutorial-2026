@@ -5,9 +5,9 @@
     "apps/*"
   ],
   "devDependencies": {
-    "@playwright/test": "^1.62.1",
-    "oxfmt": "^0.64.0",
-    "oxlint": "^1.79.0"
+    "@playwright/test": "1.62.1",
+    "oxfmt": "0.64.0",
+    "oxlint": "1.79.0"
   },
   "scripts": {
     "lint": "oxlint",
