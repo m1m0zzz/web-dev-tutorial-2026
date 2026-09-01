@@ -22,14 +22,14 @@
       // 書かないと Worker 名が memo-app-api-production になり、URL が変わる
       "name": "memo-app-api",
       "vars": {
-        "CORS_ORIGIN": "https://memo-app-web.<サブドメイン>.workers.dev",
-        "BETTER_AUTH_URL": "https://memo-app-api.<サブドメイン>.workers.dev",
+        "CORS_ORIGIN": "https://memo-app-web.m1m0zzz.workers.dev",
+        "BETTER_AUTH_URL": "https://memo-app-api.m1m0zzz.workers.dev",
       },
       "d1_databases": [
         {
           "binding": "DB",
           "database_name": "memo-app-db",
-          "database_id": "local",
+          "database_id": "0347d737-6ea6-4617-9c23-88d0e0b34f77",
           "migrations_dir": "drizzle",
         },
       ],
