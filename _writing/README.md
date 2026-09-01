@@ -231,18 +231,58 @@ git rebase --continue
 | [6.4](../docs/06_api-integration.md#64-hono-rpc-で型安全に呼ぶ) | RPC の型共有は `tsconfig` の `paths` だけで足りる（project references 不要） |
 | [6.2](../docs/06_api-integration.md#62-cors) | CORS に加えて Better Auth の `trustedOrigins` が必要 |
 | 8 | Playwright 1.62。`webServer` は `globalSetup` より先に起動する |
+| [3.2](../docs/03_backend.md#32-npm-create-honolatest) | 生成される `name` はディレクトリ名そのままの `api`。Worker 名はデプロイ先の URL になるので `memo-app-api` に直す |
+| [3.6](../docs/03_backend.md#36-drizzle--d1-で-posts-テーブルを作る) | `wrangler d1 create` が出力する `binding` はデータベース名から作られる（`memo_app_db`）。`DB` に直さないと、`db:migrate:local` が `No migrations present at .../apps/api/migrations` で失敗する（`migrations_dir` の指定ごと無視されるため） |
+| 5 | Worker の名前は Cloudflare のダッシュボードで変更できる（`wrangler` にリネームのコマンドは無い）。リネームすると `workers.dev` の URL も割り当て直され、シークレットとバインディングはそのまま残る |
+| [6.7](../docs/06_api-integration.md#67-環境変数を追加して再デプロイ) | URL の末尾スラッシュは付けない。`VITE_API_URL` に付けると `auth.ts` の手書き `fetch` だけが二重スラッシュになり 404（Hono RPC 側は正規化されるので気づきにくい）。`CORS_ORIGIN` に付けると `Origin` ヘッダーと一致せず `Access-Control-Allow-Origin` が返らない |
 
 ## 未確認の事項
 
-**Cloudflare のアカウントが必要なため、まだ実機で確認できていません。**
+**「出力を控える」ではなく「記事の手順を実際に通し、書いてある主張を1つずつ確かめる」リストです。** 最初に作ったものは前者だったため、実際にデプロイを進めて出た不備（生成物の既定値が記事の前提と違う、環境変数の形式、コミットの置き場所）を1つも拾えませんでした。
 
-- [0章](../docs/00_introduction.md): **完成版アプリの公開 URL。** デプロイが済むまで貼れないため、本文には `TODO(執筆時)` を置いてある
-- [3.1](../docs/03_backend.md#31-cloudflare-アカウント作成--wrangler-login): `wrangler login` の実際の画面遷移
-- [5.1](../docs/05_deploy.md#51-環境変数シークレットの置き場所を決める): API トークンの発行画面と、必要な権限の最小セット
-- [5.2](../docs/05_deploy.md#52-github-actions-を構築する): GitHub Actions が実際に通ること（ワークフローは書いたが、push していない）
-- [6.7](../docs/06_api-integration.md#67-環境変数を追加して再デプロイ): 本番環境での通しの動作確認
-- [7.5](../docs/07_features.md#75-csr-の限界): デプロイしたフロントに `curl` を投げ、初期 HTML に本文が含まれないことの実測
+見る観点は5つです。
 
-その他:
+1. **生成物の既定値が、記事の前提と一致しているか**（`name`、`binding` はここで外れた）
+2. **記事が「自分のものに置き換えてください」としか書いていない値**に、具体的な注意が要らないか
+3. **記事に書いた確認方法（「〜と表示されれば成功です」）が、実際にその通りになるか**
+4. **順序と依存**（先に何が無いと失敗するか）
+5. **権限と料金**（最小セットで足りるか、無料枠に収まるか）
 
-- [2.8](../docs/02_frontend.md#28-css-基礎): 図の作成（必要な図の一覧は本文に記載済み）
+### 3章
+
+- [ ] [3.1](../docs/03_backend.md#31-cloudflare-アカウント作成--wrangler-login) `npx wrangler login` の画面遷移と、`npx wrangler whoami` の出力
+- [ ] [3.2](../docs/03_backend.md#32-npm-create-honolatest) 生成物についての主張3つ: `"private": true` が入らない / `$schema` が `node_modules/wrangler/config-schema.json` になる / `install-scripts` の警告が出る
+- [ ] [3.5](../docs/03_backend.md#35-環境変数とシークレット) Worker をデプロイする前に `wrangler secret put` を実行すると何が起きるか（5.2 の「デプロイしたあとに実行してください」の根拠）
+- [ ] [3.6](../docs/03_backend.md#36-drizzle--d1-で-posts-テーブルを作る) `npm run db:migrate:remote -w apps/api` が本番の D1 に通り、`wrangler d1 execute DB --remote` で確認できること
+
+### 5章
+
+- [ ] [5.1](../docs/05_deploy.md#51-環境変数シークレットの置き場所を決める) 「Edit Cloudflare Workers」テンプレートに **D1 の編集権限が含まれるか**。含まれないなら、画面上の正確な権限名
+- [ ] [5.1](../docs/05_deploy.md#51-環境変数シークレットの置き場所を決める) その最小セットで、`deploy` と `d1 migrations apply --remote` の**両方**が通ること
+- [ ] [5.1](../docs/05_deploy.md#51-環境変数シークレットの置き場所を決める) アカウント ID の取得場所（`wrangler whoami` で足りるなら、そう書く）
+- [ ] [5.2](../docs/05_deploy.md#52-github-actions-を構築する) 初回に3つのワークフローが**すべて**動くこと（記事の主張）
+- [ ] [5.2](../docs/05_deploy.md#52-github-actions-を構築する) `/health` が `{"status":"ok"}` を返すこと
+- [ ] [5.2](../docs/05_deploy.md#52-github-actions-を構築する) `/posts/test` を直接開いて、Cloudflare の 404 ではなく React の画面が出ること（`not_found_handling`）
+- [ ] [5.2](../docs/05_deploy.md#52-github-actions-を構築する) `wrangler secret list` に `BETTER_AUTH_SECRET` が並ぶこと
+- [ ] [5.2](../docs/05_deploy.md#52-github-actions-を構築する) safe-chain の48時間ルールに当たらないか（[確認済みの事項](#確認済みの事項)を参照）
+
+### 6章
+
+- [ ] [6.7](../docs/06_api-integration.md#67-環境変数を追加して再デプロイ) Variables に登録しただけでは反映されず、**再デプロイが要る**こと
+- [ ] [6.7](../docs/06_api-integration.md#67-環境変数を追加して再デプロイ) `vars` を本番の値にしたあと、`.dev.vars` の上書きでローカル開発が壊れないこと
+- [ ] [6.7](../docs/06_api-integration.md#67-環境変数を追加して再デプロイ) 本番でサインアップ・ログイン・メモの CRUD・公開/非公開の切り替えが通ること
+- [ ] [6.7](../docs/06_api-integration.md#67-環境変数を追加して再デプロイ) `CORS_ORIGIN` だけ直して `trustedOrigins` を直さないと **403 / `Invalid origin`** になる、という記述（この構成では1箇所で済むはずなので、再現するかを含めて確認）
+
+### 7章
+
+- [ ] [7.5](../docs/07_features.md#75-csr-の限界) 本番のフロントに `curl` を投げ、**初期 HTML に本文が含まれない**こと。`<div id="root">` がほぼ空であること
+
+### 0章と横断
+
+- [ ] [0章](../docs/00_introduction.md) 完成版アプリの公開 URL（本文に `TODO(執筆時)` を置いてある）
+- [ ] [0章](../docs/00_introduction.md) ここまでの作業が**無料枠に収まっている**こと（Cloudflare のダッシュボードで実測する）
+- [ ] **記事に書いてある手順だけで、一度も手が止まらずに通るか。** 記事に書いていない操作（UI でのリネーム、値の形式の調整など）が要ったら、それは記事の穴
+
+### その他
+
+- [ ] [2.8](../docs/02_frontend.md#28-css-基礎) 図の作成（必要な図の一覧は本文に記載済み）
