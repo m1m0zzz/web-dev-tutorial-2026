@@ -238,7 +238,6 @@ git rebase --continue
 
 - [0章](../docs/00_introduction.md): **完成版アプリの公開 URL。** デプロイが済むまで貼れないため、本文には `TODO(執筆時)` を置いてある
 - [3.1](../docs/03_backend.md#31-cloudflare-アカウント作成--wrangler-login): `wrangler login` の実際の画面遷移
-- [3.6](../docs/03_backend.md#36-drizzle--d1-で-posts-テーブルを作る): `wrangler d1 create` の出力
 - [5.1](../docs/05_deploy.md#51-環境変数シークレットの置き場所を決める): API トークンの発行画面と、必要な権限の最小セット
 - [5.2](../docs/05_deploy.md#52-github-actions-を構築する): GitHub Actions が実際に通ること（ワークフローは書いたが、push していない）
 - [6.7](../docs/06_api-integration.md#67-環境変数を追加して再デプロイ): 本番環境での通しの動作確認
