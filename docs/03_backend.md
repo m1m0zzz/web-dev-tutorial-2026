@@ -247,6 +247,8 @@ BETTER_AUTH_SECRET="local-development-secret-do-not-use-in-production"
 
 本番には `wrangler secret put` で登録します（[5.1](05_deploy.md#51-環境変数シークレットの置き場所を決める) で扱います）。
 
+<!-- TODO: 以下のコマンドは5.1で書いたほうが良いユーザーが混乱する -->
+
 ```bash
 npx wrangler secret put BETTER_AUTH_SECRET
 ```
@@ -390,7 +392,30 @@ npm i -D -w apps/api drizzle-kit
 npx wrangler d1 create memo-app-db
 ```
 
-作成すると、`wrangler.jsonc` に貼り付けるための設定が出力されます。`database_id` は自分のものに置き換えてください。`migrations_dir` は自分で足します。
+作成すると、`wrangler.jsonc` に貼り付けるための設定が出力されます。
+
+```
+✅ Successfully created DB 'memo-app-db' in region APAC
+Created your new D1 database.
+
+To access your new D1 Database in your Worker, add the following snippet to your configuration file:
+{
+  "d1_databases": [
+    {
+      "binding": "memo_app_db",
+      "database_name": "memo-app-db",
+      "database_id": "<出力された ID>"
+    }
+  ]
+}
+```
+
+**この出力をそのまま貼らないでください。** 2か所直します。
+
+- **`binding` を `DB` に変える。** `wrangler` はデータベース名から機械的に決めた名前（`memo_app_db`）を出しますが、この記事ではコードから `c.env.DB` として参照します
+- **`migrations_dir` を足す。** このあと drizzle-kit が SQL を書き出す先で、出力には含まれていません
+
+`database_id` は出力されたものをそのまま使います。リージョン（`APAC` の部分）は自分の場所によって変わります。
 
 ```jsonc
 {
@@ -541,6 +566,7 @@ export default defineConfig({
 **つまずきポイント**
 
 > [!TIP]
+> - **`binding` を `DB` に直し忘れると、`npm run db:migrate:local -w apps/api` が `No migrations present at .../apps/api/migrations` で失敗します。** スクリプトは `wrangler d1 migrations apply DB` とバインディング名で対象を指定するため、`DB` が見つからないと `migrations_dir` の指定ごと無視され、既定の `migrations` を探しに行きます。**マイグレーションの置き場所ではなく、`binding` の名前を疑ってください**
 > - **SQLite には boolean 型がありません。** `is_public` は integer の 0 / 1 として保存されます。上記の `{ mode: 'boolean' }` がその変換を担当します
 > - **`Date` は JSON になるとき ISO 文字列になります。** API のレスポンスでは `"2026-08-20T12:02:29.498Z"` の形で返ります。[6.4](06_api-integration.md#64-hono-rpc-で型安全に呼ぶ) で型を共有すると、フロント側の型も `string` になります
 > - ローカルの D1 は本番とは別物です。ローカルで入れたデータは本番には反映されません
