@@ -82,6 +82,7 @@ npm install
 > [!TIP]
 > - **生成された `apps/api/package.json` には `"private": true` が入っていません。** [1.8](01_setup.md#18-リポジトリと-workspace-を作る) で説明した理由から、手で追加してください
 > - **`wrangler.jsonc` の `"$schema"` のパスを直してください。** 生成されるのは `node_modules/wrangler/config-schema.json` ですが、workspace では依存がルートにまとめられる（[2.1](02_frontend.md#21-npm-create-vitelatest)）ため、`apps/api/node_modules/` は作られません。`"../../node_modules/wrangler/config-schema.json"` にします。**動作には影響しませんが、エディタでの補完と検証が効きません**
+> - **`wrangler.jsonc` の `name` を `memo-app-api` に変えてください。** 生成される値はディレクトリ名そのままの `api` ですが、**これは Worker の名前で、デプロイ先の URL（`https://<name>.<サブドメイン>.workers.dev`）になります**（[5.2](05_deploy.md#52-github-actions-を構築する)）。`api` のままでは、何のアプリの API なのか分からない URL になります
 > - 生成された `apps/api/.gitignore` は、ルートの `.gitignore` と内容が重複します。どちらかに寄せて構いませんが、**ルート側の記述は残してください**
 > - **`npm install` で `install-scripts` の警告が出ることがあります。** npm 12 以降は、インストール時に実行されるスクリプトを既定でブロックします（[1.4](01_setup.md#14-サプライチェーン攻撃の対策) のサプライチェーン攻撃への対策の一種です）。`npm install-scripts ls` でブロックされたパッケージを確認できます。この記事の構成では、ブロックされたままでも `wrangler dev` もビルドも動きます
 
