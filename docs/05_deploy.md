@@ -11,14 +11,14 @@
 | | 環境変数 | シークレット |
 |---|---|---|
 | **API・ローカル** | `apps/api/wrangler.jsonc` の `vars` | `apps/api/.dev.vars` |
-| **API・本番** | `apps/api/wrangler.jsonc` の `vars` | `wrangler secret put` |
+| **API・本番** | `apps/api/wrangler.jsonc` の `env.production.vars`（[6.7](06_api-integration.md#67-環境変数を追加して再デプロイ)） | `wrangler secret put` |
 | **フロント・ローカル** | `apps/web/.env.local`（[6.7](06_api-integration.md#67-環境変数を追加して再デプロイ)） | 置けません |
 | **フロント・本番** | GitHub の Variables（ビルド時に埋め込む） | 置けません |
 | **CI** | workflow の `env` | GitHub Secrets |
 
 **フロントエンドにシークレットを置く場所はありません。** ビルド結果はブラウザに配られるので、埋め込んだものは必ず読めます。
 
-**API の `vars` はローカルと本番で共通です。** `wrangler.jsonc` に書いた値が両方で使われるので、本番の URL に書き換えるとローカルの開発が動かなくなります。**ローカルで別の値を使いたいときは `.dev.vars` に同じキーを書いて上書きします**（[6.7](06_api-integration.md#67-環境変数を追加して再デプロイ) で実際にそうします）。
+**API の `vars` は、同じキーでもローカルと本番で値を変えられます。** `wrangler.jsonc` のトップレベルに書いた値がローカル用で、本番用は `env.production` という別のまとまりに書きます（[6.7](06_api-integration.md#67-環境変数を追加して再デプロイ)）。**この分け方をしないと、本番の URL に書き換えた瞬間にローカルの開発が動かなくなります。**
 
 **環境変数とシークレットの違いは、漏れたときに困るかどうかです。** API の URL は漏れても困りませんが、`BETTER_AUTH_SECRET` は Better Auth が署名や暗号化に使う鍵で、**漏れると認証まわりのデータを偽造・復号される恐れがあります。** **困るほうは、リポジトリにも、ビルド成果物にも、ログにも残さない**のが原則です。
 
