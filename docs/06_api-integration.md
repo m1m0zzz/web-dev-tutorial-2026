@@ -766,7 +766,7 @@ VITE_API_URL=http://localhost:8787
 
 **API 側の設定**
 
-`apps/api/wrangler.jsonc` の `vars` を、本番の値に書き換えます。
+**ここまで `wrangler.jsonc` の `vars` はローカルの値でした。** 本番では別の値にしたいので、`env.production` という環境を足します。
 
 | キー | 本番の値 |
 |---|---|
@@ -775,12 +775,54 @@ VITE_API_URL=http://localhost:8787
 
 **この2つは別のものです。** 前者は「どこからのリクエストを許すか」、後者は「自分自身がどの URL で公開されているか」です。
 
-**書き換えるとローカル開発が壊れます。** `vars` はローカルでも使われるためです。**`apps/api/.dev.vars` に同じキーを書いて上書きしてください。**
+```jsonc
+{
+  // トップレベルはローカル用。npm run dev と E2E がこれを使う
+  "vars": {
+    "CORS_ORIGIN": "http://localhost:5173",
+    "BETTER_AUTH_URL": "http://localhost:8787",
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "memo-app-db",
+      "database_id": "<3.6 で作ったもの>",
+      "migrations_dir": "drizzle",
+    },
+  ],
 
+  "env": {
+    "production": {
+      "name": "memo-app-api",
+      "vars": {
+        "CORS_ORIGIN": "https://memo-app-web.<サブドメイン>.workers.dev",
+        "BETTER_AUTH_URL": "https://memo-app-api.<サブドメイン>.workers.dev",
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "memo-app-db",
+          "database_id": "<3.6 で作ったもの>",
+          "migrations_dir": "drizzle",
+        },
+      ],
+    },
+  },
+}
 ```
-CORS_ORIGIN=http://localhost:5173
-BETTER_AUTH_URL=http://localhost:8787
-BETTER_AUTH_SECRET=<ローカル用の値>
+
+**`name` と `d1_databases` を環境の中にもう一度書いているのは、書き忘れを防ぐためではなく、書かないと消えるからです。** `vars` や各種バインディングは**環境に継承されません**。`d1_databases` を書き忘れると `wrangler` が警告を出し、本番の Worker から D1 が消えます。
+
+`name` はさらに厄介で、**書かないと Worker 名が `memo-app-api-production` になります**（環境名が末尾に付く仕様です）。名前が変われば `workers.dev` の URL も変わるので、必ず書いてください。
+
+デプロイするときに `--env production` を付けると、この環境の値が使われます。`.github/workflows/deploy-api.yml` の2箇所を直してください。
+
+```yaml
+          command: d1 migrations apply DB --remote --env production
+```
+
+```yaml
+          command: deploy --minify --env production
 ```
 
 書き換えたら型を生成し直します。
@@ -788,6 +830,8 @@ BETTER_AUTH_SECRET=<ローカル用の値>
 ```bash
 npm run cf-typegen -w apps/api
 ```
+
+**`vars` の型が、環境をまたいだ union になります。** [3.5](03_backend.md#35-環境変数とシークレット) で見たリテラル型が、`"https://memo-app-web..." | "http://localhost:5173"` の形になり、「どちらかの値が入る」という意味になります。
 
 **CORS と `trustedOrigins` の両方に効くことを確認してください。** どちらか片方だけ直すと、**CORS は通るのに Better Auth が 403 を返し、本文が `Invalid origin` になる**という分かりにくい状態になります（[3.10](03_backend.md#310-better-auth-を導入しposts-をユーザーに紐づける) の `trustedOrigins` は `CORS_ORIGIN` を見ているので、この記事の構成では1箇所で済みます）。
 
@@ -807,6 +851,7 @@ npm test -w apps/api
 **つまずきポイント**
 
 > [!TIP]
+> - **デプロイのコマンドに `--env production` を付け忘れると、本番にローカルの値が入ります。** `wrangler deploy` は環境を指定しないとトップレベルの `vars` を使うので、`CORS_ORIGIN` が `http://localhost:5173` のまま上書きされます。エラーにはならず、**ブラウザからのリクエストが全部 CORS で弾かれる**形で出ます
 > - **`VITE_API_URL` と `CORS_ORIGIN` には、末尾のスラッシュを付けないでください。** `VITE_API_URL` は Hono RPC 経由の呼び出しだけが URL を正規化するため、**「メモの一覧は出るのにログインできない」**という切り分けにくい壊れ方をします。`CORS_ORIGIN` のほうは、ブラウザが送る `Origin` ヘッダーに末尾スラッシュが付かないので一致せず、`Access-Control-Allow-Origin` が返らなくなります。`BETTER_AUTH_URL` も揃えてください
 > - **`VITE_` 接頭辞の環境変数は、ビルド成果物に平文で埋め込まれます。** ブラウザの開発者ツールから読めるので、シークレットを入れてはいけません。API の URL のような公開情報のみを入れます
 > - 本番のフロントエンドの URL を CORS の許可リストに追加し忘れると、ローカルでは動くのに本番で動かない状態になります
