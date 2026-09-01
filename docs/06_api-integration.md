@@ -760,6 +760,8 @@ VITE_API_URL=http://localhost:8787
 |---|---|
 | `VITE_API_URL` | デプロイした API のオリジン（`https://memo-app-api.<サブドメイン>.workers.dev`） |
 
+**末尾にスラッシュを付けないでください。** `https://memo-app-api.<サブドメイン>.workers.dev/` と登録すると、`apps/web/src/lib/auth.ts` が組み立てる URL が `https://...//auth/sign-in/email` と二重スラッシュになり、**ログイン・サインアップ・ログアウトだけが 404 になります。**
+
 **登録しただけでは反映されません。** 値が埋め込まれるのはビルド時なので、**フロントを再デプロイする必要があります。** `apps/web` を変更して push するか、Actions の画面から `Deploy Web` を再実行してください。
 
 **API 側の設定**
@@ -805,6 +807,7 @@ npm test -w apps/api
 **つまずきポイント**
 
 > [!TIP]
+> - **`VITE_API_URL` と `CORS_ORIGIN` には、末尾のスラッシュを付けないでください。** `VITE_API_URL` は Hono RPC 経由の呼び出しだけが URL を正規化するため、**「メモの一覧は出るのにログインできない」**という切り分けにくい壊れ方をします。`CORS_ORIGIN` のほうは、ブラウザが送る `Origin` ヘッダーに末尾スラッシュが付かないので一致せず、`Access-Control-Allow-Origin` が返らなくなります。`BETTER_AUTH_URL` も揃えてください
 > - **`VITE_` 接頭辞の環境変数は、ビルド成果物に平文で埋め込まれます。** ブラウザの開発者ツールから読めるので、シークレットを入れてはいけません。API の URL のような公開情報のみを入れます
 > - 本番のフロントエンドの URL を CORS の許可リストに追加し忘れると、ローカルでは動くのに本番で動かない状態になります
 
