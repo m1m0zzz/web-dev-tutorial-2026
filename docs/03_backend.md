@@ -567,6 +567,7 @@ export default defineConfig({
 **つまずきポイント**
 
 > [!TIP]
+> - **`database_id` を変えると、ローカルの D1 の保存先も切り替わります。** miniflare はこの値ごとに別の sqlite ファイルを使うため、仮の値から本物の ID に差し替えると、**それまで手元に入れたデータもテーブルも見えなくなります。** `npm run db:migrate:local -w apps/api` で作り直してください（本番の D1 とは無関係です）
 > - **`binding` を `DB` に直し忘れると、`npm run db:migrate:local -w apps/api` が `No migrations present at .../apps/api/migrations` で失敗します。** スクリプトは `wrangler d1 migrations apply DB` とバインディング名で対象を指定するため、`DB` が見つからないと `migrations_dir` の指定ごと無視され、既定の `migrations` を探しに行きます。**マイグレーションの置き場所ではなく、`binding` の名前を疑ってください**
 > - **SQLite には boolean 型がありません。** `is_public` は integer の 0 / 1 として保存されます。上記の `{ mode: 'boolean' }` がその変換を担当します
 > - **`Date` は JSON になるとき ISO 文字列になります。** API のレスポンスでは `"2026-08-20T12:02:29.498Z"` の形で返ります。[6.4](06_api-integration.md#64-hono-rpc-で型安全に呼ぶ) で型を共有すると、フロント側の型も `string` になります

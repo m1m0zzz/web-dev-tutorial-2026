@@ -235,6 +235,8 @@ git rebase --continue
 | [3.6](../docs/03_backend.md#36-drizzle--d1-で-posts-テーブルを作る) | `wrangler d1 create` が出力する `binding` はデータベース名から作られる（`memo_app_db`）。`DB` に直さないと、`db:migrate:local` が `No migrations present at .../apps/api/migrations` で失敗する（`migrations_dir` の指定ごと無視されるため） |
 | 5 | Worker の名前は Cloudflare のダッシュボードで変更できる（`wrangler` にリネームのコマンドは無い）。リネームすると `workers.dev` の URL も割り当て直され、シークレットとバインディングはそのまま残る |
 | [6.7](../docs/06_api-integration.md#67-環境変数を追加して再デプロイ) | URL の末尾スラッシュは付けない。`VITE_API_URL` に付けると `auth.ts` の手書き `fetch` だけが二重スラッシュになり 404（Hono RPC 側は正規化されるので気づきにくい）。`CORS_ORIGIN` に付けると `Origin` ヘッダーと一致せず `Access-Control-Allow-Origin` が返らない |
+| [6.7](../docs/06_api-integration.md#67-環境変数を追加して再デプロイ) | wrangler の環境（`env.production`）では、`vars` と `d1_databases` は**継承されない**（書かないと本番から D1 が消える）。`name` も環境内に書かないと Worker 名が `<name>-production` になり URL が変わる。`wrangler types` は環境をまたいだ union 型を生成する |
+| 8 | E2E は `.dev.vars` に依存させない。`.dev.vars` は gitignore されていて CI に存在しないため、`vars` に本番の値を置くと CI だけ CORS で全滅する |
 
 ## 未確認の事項
 

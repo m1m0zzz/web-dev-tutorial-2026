@@ -786,7 +786,8 @@ VITE_API_URL=http://localhost:8787
     {
       "binding": "DB",
       "database_name": "memo-app-db",
-      "database_id": "<3.6 で作ったもの>",
+      // 本番の ID は env.production へ移す
+      "database_id": "local",
       "migrations_dir": "drizzle",
     },
   ],
@@ -814,6 +815,23 @@ VITE_API_URL=http://localhost:8787
 **`name` と `d1_databases` を環境の中にもう一度書いているのは、書き忘れを防ぐためではなく、書かないと消えるからです。** `vars` や各種バインディングは**環境に継承されません**。`d1_databases` を書き忘れると `wrangler` が警告を出し、本番の Worker から D1 が消えます。
 
 `name` はさらに厄介で、**書かないと Worker 名が `memo-app-api-production` になります**（環境名が末尾に付く仕様です）。名前が変われば `workers.dev` の URL も変わるので、必ず書いてください。
+
+**トップレベルの `database_id` は仮の値に戻してください。** [3.6](03_backend.md#36-drizzle--d1-で-posts-テーブルを作る) で貼り付けた本物の ID は `env.production` へ移します。本番の値を1箇所に集めるためですが、**もう1つ、事故を防ぐ効果があります。**
+
+```
+$ npx wrangler d1 execute DB --remote --command "SELECT 1" --cwd apps/api
+✘ [ERROR] Invalid property: databaseId => Invalid uuid [code: 7400]
+```
+
+**`--env production` を付け忘れたコマンドが、本番のデータベースに届かなくなります。** 本物の ID を残しておくと、付け忘れたコマンドが黙って本番に当たります。**仮の値が壁になります。**
+
+`apps/api/package.json` のスクリプトにも `--env production` を足してください。
+
+```json
+"db:migrate:remote": "wrangler d1 migrations apply DB --remote --env production"
+```
+
+**`database_id` を変えると、ローカルの D1 の保存先も変わります。** miniflare はこの値ごとに別のファイルを使うため、**それまで手元に入れていたデータは見えなくなります。** `npm run db:migrate:local -w apps/api` でテーブルを作り直してください。
 
 デプロイするときに `--env production` を付けると、この環境の値が使われます。`.github/workflows/deploy-api.yml` の2箇所を直してください。
 
