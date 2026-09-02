@@ -160,13 +160,9 @@ npm i -D -w apps/web wrangler
       - run: npm run typecheck -w apps/api
       - run: npm test -w apps/web
       - run: npm test -w apps/api
-
-      # デプロイの前に E2E も通す（8章で追加します）
-      - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
-        env:
-          CI: 'true'
 ```
+
+**E2E も同じようにデプロイの前に通しますが、それは [8.4](08_e2e.md#84-ci-で実行する) で足します。** この章ではまだ E2E テストを書いていません。
 
 Lint とテストが `ci.yml` とデプロイ側で二重に走ることになりますが、**「検査を通っていないものはデプロイされない」ほうが重要です。** 同じジョブの中のステップとして並んでいるので、途中で失敗すればそこで止まり、デプロイのステップには到達しません。
 
@@ -346,10 +342,7 @@ jobs:
       - run: npm test -w apps/web
       - run: npm test -w apps/api
 
-      # VITE_ の環境変数はビルド時に埋め込まれる。シークレットを入れてはいけない
       - run: npm run build -w apps/web
-        env:
-          VITE_API_URL: ${{ vars.VITE_API_URL }}
 
       - name: Deploy Worker
         uses: cloudflare/wrangler-action@v4
@@ -382,15 +375,14 @@ safe-chain のインストールスクリプトは、URL にバージョンが�
           command: deploy --minify
 ```
 
-`secrets` ではなく `vars`（GitHub の Variables）でビルド時の値を渡しているのは、この値が公開されるものだからです。**シークレットではないものをシークレットに入れると、「秘密にすべきもの」の境界が曖昧になります。**
-
 **必要なシークレット**
 
 | 名前 | 種類 | 中身 |
 |---|---|---|
 | `CLOUDFLARE_API_TOKEN` | Secret | Workers と D1 の編集権限を持つ API トークン |
 | `CLOUDFLARE_ACCOUNT_ID` | Secret | Cloudflare のアカウント ID |
-| `VITE_API_URL` | Variable | デプロイした API の URL |
+
+フロントに渡す `VITE_API_URL` は [6.7](06_api-integration.md#67-環境変数を追加して再デプロイ) で足します。**API をデプロイするまで値が決まらないためです。**
 
 `BETTER_AUTH_SECRET` は GitHub には登録しません。**Cloudflare 側に直接入れておけば、デプロイしても消えません。**
 
