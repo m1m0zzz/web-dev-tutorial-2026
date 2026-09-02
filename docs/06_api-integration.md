@@ -267,7 +267,7 @@ export type AppType = typeof app   // これを追加
 
 **クライアントを作る**
 
-`apps/web` に `hono` を入れます（`hono/client` を使うため）。
+以下のコマンドを実行して `apps/web` に `hono` を入れます（`hono/client` を使うため）。
 
 ```bash
 npm i -w apps/web hono
@@ -746,7 +746,9 @@ const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8787'
 VITE_API_URL=http://localhost:8787
 ```
 
-**本番の値は、GitHub の Variables に登録します。** [5.2](05_deploy.md#52-github-actions-を構築する) のワークフローが、ビルドのステップでこれを読みます。
+**本番の値は、GitHub の Variables に登録します。** [5.2](05_deploy.md#52-github-actions-を構築する) で作った `.github/workflows/deploy-web.yml` の、ビルドのステップで読ませます。
+
+**`secrets` ではなく `vars`（Variables）を使うのは、この値が公開されるものだからです。** シークレットではないものをシークレットに入れると、「秘密にすべきもの」の境界が曖昧になります。
 
 ```yaml
       - run: npm run build -w apps/web
