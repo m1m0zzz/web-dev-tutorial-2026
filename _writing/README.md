@@ -237,6 +237,8 @@ git rebase --continue
 | [6.7](../docs/06_api-integration.md#67-環境変数を追加して再デプロイ) | URL の末尾スラッシュは付けない。`VITE_API_URL` に付けると `auth.ts` の手書き `fetch` だけが二重スラッシュになり 404（Hono RPC 側は正規化されるので気づきにくい）。`CORS_ORIGIN` に付けると `Origin` ヘッダーと一致せず `Access-Control-Allow-Origin` が返らない |
 | [6.7](../docs/06_api-integration.md#67-環境変数を追加して再デプロイ) | wrangler の環境（`env.production`）では、`vars` と `d1_databases` は**継承されない**（書かないと本番から D1 が消える）。`name` も環境内に書かないと Worker 名が `<name>-production` になり URL が変わる。`wrangler types` は環境をまたいだ union 型を生成する |
 | 8 | E2E は `.dev.vars` に依存させない。`.dev.vars` は gitignore されていて CI に存在しないため、`vars` に本番の値を置くと CI だけ CORS で全滅する |
+| [5.1](../docs/05_deploy.md#51-環境変数シークレットの置き場所を決める) | API トークンは「Edit Cloudflare Workers」テンプレートではなくカスタムで作る。`Workers スクリプト: 編集` と `D1: 編集` の2つで `deploy` と `d1 migrations apply --remote` が通る。アカウント ID は `wrangler whoami` が表で出す |
+| [7.5](../docs/07_features.md#75-csr-の限界) | 公開メモの URL に `curl` を投げると 453 バイトの HTML が返り、本文もタイトルも含まれない（`<div id="root"></div>` のみ） |
 
 ## 未確認の事項
 
@@ -252,32 +254,32 @@ git rebase --continue
 
 ### 3章
 
-- [ ] [3.1](../docs/03_backend.md#31-cloudflare-アカウント作成--wrangler-login) `npx wrangler login` の画面遷移と、`npx wrangler whoami` の出力
+- [x] [3.1](../docs/03_backend.md#31-cloudflare-アカウント作成--wrangler-login) `npx wrangler login` の画面遷移と、`npx wrangler whoami` の出力
 - [ ] [3.2](../docs/03_backend.md#32-npm-create-honolatest) 生成物についての主張3つ: `"private": true` が入らない / `$schema` が `node_modules/wrangler/config-schema.json` になる / `install-scripts` の警告が出る
 - [ ] [3.5](../docs/03_backend.md#35-環境変数とシークレット) Worker をデプロイする前に `wrangler secret put` を実行すると何が起きるか（5.2 の「デプロイしたあとに実行してください」の根拠）
-- [ ] [3.6](../docs/03_backend.md#36-drizzle--d1-で-posts-テーブルを作る) `npm run db:migrate:remote -w apps/api` が本番の D1 に通り、`wrangler d1 execute DB --remote` で確認できること
+- [x] [3.6](../docs/03_backend.md#36-drizzle--d1-で-posts-テーブルを作る) `npm run db:migrate:remote -w apps/api` が本番の D1 に通り、`wrangler d1 execute DB --remote` で確認できること
 
 ### 5章
 
-- [ ] [5.1](../docs/05_deploy.md#51-環境変数シークレットの置き場所を決める) 「Edit Cloudflare Workers」テンプレートに **D1 の編集権限が含まれるか**。含まれないなら、画面上の正確な権限名
-- [ ] [5.1](../docs/05_deploy.md#51-環境変数シークレットの置き場所を決める) その最小セットで、`deploy` と `d1 migrations apply --remote` の**両方**が通ること
-- [ ] [5.1](../docs/05_deploy.md#51-環境変数シークレットの置き場所を決める) アカウント ID の取得場所（`wrangler whoami` で足りるなら、そう書く）
-- [ ] [5.2](../docs/05_deploy.md#52-github-actions-を構築する) 初回に3つのワークフローが**すべて**動くこと（記事の主張）
-- [ ] [5.2](../docs/05_deploy.md#52-github-actions-を構築する) `/health` が `{"status":"ok"}` を返すこと
-- [ ] [5.2](../docs/05_deploy.md#52-github-actions-を構築する) `/posts/test` を直接開いて、Cloudflare の 404 ではなく React の画面が出ること（`not_found_handling`）
-- [ ] [5.2](../docs/05_deploy.md#52-github-actions-を構築する) `wrangler secret list` に `BETTER_AUTH_SECRET` が並ぶこと
+- [x] [5.1](../docs/05_deploy.md#51-環境変数シークレットの置き場所を決める) トークンの最小権限 → テンプレートを使わず、`Workers スクリプト: 編集` と `D1: 編集` の2つで足りた
+- [x] [5.1](../docs/05_deploy.md#51-環境変数シークレットの置き場所を決める) その最小セットで、`deploy` と `d1 migrations apply --remote` の**両方**が通ること
+- [x] [5.1](../docs/05_deploy.md#51-環境変数シークレットの置き場所を決める) アカウント ID の取得場所（`wrangler whoami` で足りるなら、そう書く）
+- [x] [5.2](../docs/05_deploy.md#52-github-actions-を構築する) 初回に3つのワークフローが**すべて**動くこと（記事の主張）
+- [x] [5.2](../docs/05_deploy.md#52-github-actions-を構築する) `/health` が `{"status":"ok"}` を返すこと
+- [x] [5.2](../docs/05_deploy.md#52-github-actions-を構築する) `/posts/test` を直接開いて、Cloudflare の 404 ではなく React の画面が出ること（`not_found_handling`）
+- [x] [5.2](../docs/05_deploy.md#52-github-actions-を構築する) `wrangler secret list` に `BETTER_AUTH_SECRET` が並ぶこと
 - [ ] [5.2](../docs/05_deploy.md#52-github-actions-を構築する) safe-chain の48時間ルールに当たらないか（[確認済みの事項](#確認済みの事項)を参照）
 
 ### 6章
 
-- [ ] [6.7](../docs/06_api-integration.md#67-環境変数を追加して再デプロイ) Variables に登録しただけでは反映されず、**再デプロイが要る**こと
-- [ ] [6.7](../docs/06_api-integration.md#67-環境変数を追加して再デプロイ) `vars` を本番の値にしたあと、`.dev.vars` の上書きでローカル開発が壊れないこと
-- [ ] [6.7](../docs/06_api-integration.md#67-環境変数を追加して再デプロイ) 本番でサインアップ・ログイン・メモの CRUD・公開/非公開の切り替えが通ること
+- [x] [6.7](../docs/06_api-integration.md#67-環境変数を追加して再デプロイ) Variables に登録しただけでは反映されず、**再デプロイが要る**こと
+- [x] [6.7](../docs/06_api-integration.md#67-環境変数を追加して再デプロイ) `env.production` に分けたあと、ローカル開発と E2E が上書き無しで動くこと
+- [x] [6.7](../docs/06_api-integration.md#67-環境変数を追加して再デプロイ) 本番でサインアップ・ログイン・メモの CRUD・公開/非公開の切り替えが通ること
 - [ ] [6.7](../docs/06_api-integration.md#67-環境変数を追加して再デプロイ) `CORS_ORIGIN` だけ直して `trustedOrigins` を直さないと **403 / `Invalid origin`** になる、という記述（この構成では1箇所で済むはずなので、再現するかを含めて確認）
 
 ### 7章
 
-- [ ] [7.5](../docs/07_features.md#75-csr-の限界) 本番のフロントに `curl` を投げ、**初期 HTML に本文が含まれない**こと。`<div id="root">` がほぼ空であること
+- [x] [7.5](../docs/07_features.md#75-csr-の限界) 本番のフロントに `curl` を投げ、**初期 HTML に本文が含まれない**こと。`<div id="root">` がほぼ空であること
 
 ### 0章と横断
 
@@ -288,3 +290,11 @@ git rebase --continue
 ### その他
 
 - [ ] [2.8](../docs/02_frontend.md#28-css-基礎) 図の作成（必要な図の一覧は本文に記載済み）
+
+## TODO
+
+- TODO: プレフィックスを付けた箇所
+- password の input に autocomplete="current-password" を付ける
+- 公開メモが1件もない場合は、「公開されているメモはありません」と表示する
+- web のtitle
+- web created_at, updated_at を表示する
