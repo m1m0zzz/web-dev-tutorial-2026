@@ -283,7 +283,7 @@ git rebase --continue
 
 ### 0章と横断
 
-- [ ] [0章](../docs/00_introduction.md) 完成版アプリの公開 URL（本文に `TODO(執筆時)` を置いてある）
+- [x] [0章](../docs/00_introduction.md) 完成版アプリの公開 URL → `https://memo-app-web.m1m0zzz.workers.dev` を本文に記載
 - [ ] [0章](../docs/00_introduction.md) ここまでの作業が**無料枠に収まっている**こと（Cloudflare のダッシュボードで実測する）
 - [ ] **記事に書いてある手順だけで、一度も手が止まらずに通るか。** 記事に書いていない操作（UI でのリネーム、値の形式の調整など）が要ったら、それは記事の穴
 
