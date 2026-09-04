@@ -239,6 +239,7 @@ git rebase --continue
 | 8 | E2E は `.dev.vars` に依存させない。`.dev.vars` は gitignore されていて CI に存在しないため、`vars` に本番の値を置くと CI だけ CORS で全滅する |
 | [5.1](../docs/05_deploy.md#51-環境変数シークレットの置き場所を決める) | API トークンは「Edit Cloudflare Workers」テンプレートではなくカスタムで作る。`Workers スクリプト: 編集` と `D1: 編集` の2つで `deploy` と `d1 migrations apply --remote` が通る。アカウント ID は `wrangler whoami` が表で出す |
 | [7.5](../docs/07_features.md#75-csr-の限界) | 公開メモの URL に `curl` を投げると 453 バイトの HTML が返り、本文もタイトルも含まれない（`<div id="root"></div>` のみ） |
+| 0 | 無料プランでは上限を超えても課金されない。Cloudflare は Worker が 1027 エラーを返し（[Workers の制限](https://developers.cloudflare.com/workers/platform/limits/)）、GitHub は支払い方法が無ければ枠を使い切った時点で実行がブロックされる |
 
 ## 未確認の事項
 
@@ -284,7 +285,6 @@ git rebase --continue
 ### 0章と横断
 
 - [x] [0章](../docs/00_introduction.md) 完成版アプリの公開 URL → `https://memo-app-web.m1m0zzz.workers.dev` を本文に記載
-- [ ] [0章](../docs/00_introduction.md) ここまでの作業が**無料枠に収まっている**こと（Cloudflare のダッシュボードで実測する）
 - [ ] **記事に書いてある手順だけで、一度も手が止まらずに通るか。** 記事に書いていない操作（UI でのリネーム、値の形式の調整など）が要ったら、それは記事の穴
 
 ### その他
