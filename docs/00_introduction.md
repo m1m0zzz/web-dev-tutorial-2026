@@ -4,7 +4,7 @@
 
 **最終的に、認証付きの公開メモアプリを Cloudflare にデプロイします。**
 
-完成したアプリ: TODO(執筆時) 公開 URL を貼る
+完成したアプリ: https://memo-app-web.m1m0zzz.workers.dev
 
 執筆の一部に Claude を使用しています。
 
