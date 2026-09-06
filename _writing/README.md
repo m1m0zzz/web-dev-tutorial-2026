@@ -269,7 +269,6 @@ git rebase --continue
 - [x] [5.2](../docs/05_deploy.md#52-github-actions-を構築する) `/health` が `{"status":"ok"}` を返すこと
 - [x] [5.2](../docs/05_deploy.md#52-github-actions-を構築する) `/posts/test` を直接開いて、Cloudflare の 404 ではなく React の画面が出ること（`not_found_handling`）
 - [x] [5.2](../docs/05_deploy.md#52-github-actions-を構築する) `wrangler secret list` に `BETTER_AUTH_SECRET` が並ぶこと
-- [ ] [5.2](../docs/05_deploy.md#52-github-actions-を構築する) safe-chain の48時間ルールに当たらないか（[確認済みの事項](#確認済みの事項)を参照）
 
 ### 6章
 
