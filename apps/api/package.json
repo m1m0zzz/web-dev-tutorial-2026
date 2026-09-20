@@ -28,6 +28,6 @@
     "drizzle-kit": "0.31.10",
     "typescript": "6.0.3",
     "vitest": "4.1.11",
-    "wrangler": "4.132.0"
+    "wrangler": "4.133.0"
   }
 }
