@@ -5,7 +5,7 @@
     "apps/*"
   ],
   "devDependencies": {
-    "@playwright/test": "1.64.0",
+    "@playwright/test": "1.64.1",
     "oxfmt": "0.64.0",
     "oxlint": "1.88.0"
   },
