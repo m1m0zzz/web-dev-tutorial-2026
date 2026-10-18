@@ -27,7 +27,7 @@
     "@types/node": "24.19.2",
     "drizzle-kit": "0.31.11",
     "typescript": "6.0.3",
-    "vitest": "4.1.11",
+    "vitest": "4.1.12",
     "wrangler": "4.151.0"
   }
 }
