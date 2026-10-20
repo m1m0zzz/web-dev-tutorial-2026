@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "0.23.0",
-    "@libsql/client": "0.17.4",
+    "@libsql/client": "0.18.0",
     "@types/node": "24.19.2",
     "drizzle-kit": "0.31.11",
     "typescript": "6.0.3",
