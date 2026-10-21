@@ -221,13 +221,13 @@ git rebase --continue
 | 全体 | この記事の範囲は Cloudflare の無料プランに収まる。Workers 100,000 リクエスト/日、D1 は読み取り 500 万行/日・書き込み 100,000 行/日・容量 5 GB、静的ファイルの配信は無制限（[Workers の料金](https://developers.cloudflare.com/workers/platform/pricing/) / [D1 の料金](https://developers.cloudflare.com/d1/platform/pricing/) で確認） |
 | 2 | Node.js の LTS は 24。`create-vite` 9系の生成物（Vite 8 / React 19 / TS 6、Lint は oxlint） |
 | [2.9](../docs/02_frontend.md#29-react-router-でページを分ける) | React Router v8。モードの呼称（Framework / Data / Declarative）は変わっていない |
-| [2.10](../docs/02_frontend.md#210-oxlint--oxfmt-のセットアップ) | oxlint 1.79 / oxfmt 0.64。`create-vite` が入れるのは oxlint だけで、oxfmt も `oxlint-tsgolint` も入らない。oxlint は既定で `correctness` カテゴリのみ、react プラグインは off。型情報を使うルールには `oxlint-tsgolint` + `--type-aware` が要る。`overrides` の `plugins` は既定のプラグインを置き換えず足し算になる |
+| [2.10](../docs/02_frontend.md#210-oxlint--oxfmt-のセットアップ) | oxlint 1.79 / oxfmt 0.73。`create-vite` が入れるのは oxlint だけで、oxfmt も `oxlint-tsgolint` も入らない。oxlint は既定で `correctness` カテゴリのみ、react プラグインは off。型情報を使うルールには `oxlint-tsgolint` + `--type-aware` が要る。`overrides` の `plugins` は既定のプラグインを置き換えず足し算になる |
 | [3.2](../docs/03_backend.md#32-npm-create-honolatest) | `create-hono` 0.19 系の生成物。`"private": true` は入っていない |
 | [3.5](../docs/03_backend.md#35-環境変数とシークレット) | `wrangler types` が `vars` をリテラル型、`.dev.vars` のキーを `string` として生成する |
 | [3.6](../docs/03_backend.md#36-drizzle--d1-で-posts-テーブルを作る) | Drizzle 0.45 / drizzle-kit 0.31。ローカル D1 は `.wrangler/state/v3/d1/miniflare-D1DatabaseObject/<hash>.sqlite` |
 | [3.7](../docs/03_backend.md#37-入力バリデーション) | `@hono/zod-validator` 0.9 + zod 4 |
 | [3.10](../docs/03_backend.md#310-better-auth-を導入しposts-をユーザーに紐づける) | Better Auth 1.7。D1 の組み込みサポートはあるが、この記事は Drizzle アダプタを使う。`drizzleAdapter` には `schema` を渡す必要がある。トークンは `set-auth-token` ヘッダー |
-| 4 | Vitest 4 + Testing Library 16 / `@cloudflare/vitest-pool-workers` 0.22（`cloudflareTest` プラグイン形式） |
+| 4 | Vitest 4 + Testing Library 16 / `@cloudflare/vitest-pool-workers` 0.23（`cloudflareTest` プラグイン形式） |
 | [6.4](../docs/06_api-integration.md#64-hono-rpc-で型安全に呼ぶ) | RPC の型共有は `tsconfig` の `paths` だけで足りる（project references 不要） |
 | [6.2](../docs/06_api-integration.md#62-cors) | CORS に加えて Better Auth の `trustedOrigins` が必要 |
 | 8 | Playwright 1.62。`webServer` は `globalSetup` より先に起動する |

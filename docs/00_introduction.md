@@ -79,7 +79,7 @@ Windows + WSL2 (Ubuntu) を前提としています。macOS / Linux を使って
 | Hono / Zod | 4 / 4 |
 | Drizzle ORM / Better Auth | 0.45 / 1.7 |
 | Vitest / Playwright | 4 / 1.62 |
-| oxlint / oxfmt | 1.79 / 0.64 |
+| oxlint / oxfmt | 1.79 / 0.73 |
 | Wrangler | 4 |
 
 **メジャーバージョンが上がると、手順や生成されるファイルが変わることがあります。** 記事中でバージョンに依存する箇所には、確認したバージョンを添えています。手元の出力が記事と違うときは、まずバージョンを疑ってください。
