@@ -6,6 +6,7 @@
 |---|---|
 | [`AGENTS.md`](AGENTS.md) | 執筆時の指示（節の書式、参照リンク、調査の原則など）。`CLAUDE.md` はこれへのシンボリックリンク |
 | [`sync-chapters.sh`](sync-chapters.sh) | 章ブランチを `main` の履歴に合わせて付け直す |
+| [`refresh-chapters.sh`](refresh-chapters.sh) | `main` の先端にある依存のバージョンを、章のコミットまでさかのぼって当てる（ケース6） |
 
 ## 最初に: `.mode` を作る
 
@@ -47,7 +48,7 @@ ba0398f  test: 4章 テストを書く                          <- chapter-04
 | `.github/workflows/*.yml` | 5章のコミット | 記事 5.2 で読者が作る |
 | `playwright.config.ts`、`tests/e2e/**` | 8章のコミット | 記事 8章で読者が作る |
 | `package.json`、`package-lock.json` | 依存を追加した章のコミット | 記事の手順で `npm i` するタイミング |
-| `docs/**`、`README.md`、`_writing/**`、`renovate.json` | **先端**（ケース1） | 記事に出てこない。章ブランチには含まれない |
+| `docs/**`、`README.md`、`_writing/**`、`renovate.json`、`.npmrc` | **先端**（ケース1） | 記事に出てこない。章ブランチには含まれない |
 | `AGENTS.md`、`CLAUDE.md` | **1章のコミット**（ケース5） | 記事に出てこないが、どの章ブランチでもエージェントに読ませたい |
 
 `.gitignore` の `.mode` の行だけは例外で、**先端**に入れてあります。記事に出てこない、執筆者だけのファイルだからです。そのぶん章ブランチでは `.mode` が無視されません（下の `git add -A` の注意を参照）。
@@ -64,9 +65,11 @@ ba0398f  test: 4章 テストを書く                          <- chapter-04
 
 ### 例: 依存パッケージを更新するとき
 
-Renovate の PR は `main` にだけ入ります。**章ブランチは、記事を書いた時点のバージョンのまま**です。これは意図した状態で、記事に書いてあるバージョンと手元のコードが一致します。
+Renovate の PR は `main` にだけ入ります。**章ブランチは、最後に反映したときのバージョンのまま**です。
 
-ただし差が開くと、記事の記述（「`create-vite` 9系の生成物は…」など）と実際のコードがずれていきます。**記事がバージョンを明記している箇所と食い違ってきたら、その更新を該当章のコミットに取り込んで（ケース2）、記事も直してください。**
+記事にはバージョンを、**Renovate が automerge しない桁まで**しか書きません。1.0 以上はメジャー、0.x はマイナーまでです（`renovate.json` で、この2つを automerge の対象から外しています）。automerge される更新では記事の記述が変わらないので、章ブランチが古いままでも記事と食い違いません。正確なバージョンは `package.json` を見るよう、0章で案内しています。
+
+**automerge されない更新を merge して記事を直したら、章ブランチにも反映します**（ケース6）。期間を決めた定期的な反映はしません。生成物や手順まで変わっている場合は、章のコードも直します（ケース2）。
 
 ## ケース1: 記事だけを直す
 
@@ -196,6 +199,41 @@ git rebase --continue
 
 **先端で `AGENTS.md` を直してコミットしないでください。** 一見それで動きますが、その変更は章ブランチには届きません。
 
+## ケース6: 依存の更新を章ブランチに反映する
+
+`main` の先端にある依存のバージョンを、章のコミットまでさかのぼって当てます。ケース2 のように `git rebase -i` で章のコミットを直すと、上に積まれた Renovate のコミットと `package-lock.json` が何十回も衝突するので、専用のスクリプトを使います。
+
+```bash
+# 1. 書き換えた履歴を refresh ブランチに作る（main は書き換えない）
+./_writing/refresh-chapters.sh
+
+# 2. 中身を確認する（先端のツリーが main と同じことは、スクリプトが確かめ済み）
+git log --oneline refresh
+
+# 3. main を差し替えて、章ブランチごと push する
+git reset --hard refresh
+./_writing/sync-chapters.sh --push
+git branch -D refresh
+```
+
+スクリプトは `main` を根元から first-parent でたどり、各コミットを次のように作り直します。
+
+1. `package.json`（ルートと `apps/*`）の依存を、先端と同じバージョンにする。`^` の有無はそのコミットの書き方のまま残す
+2. 先端の `package-lock.json` を元に、`npm install --package-lock-only` で lockfile を作り直す。そのコミットで使わないパッケージは落ち、残るものは先端と同じバージョンになる
+3. 1つ前のコミットとの差分が無くなったコミットは落とす
+
+結果として、次のようになります。
+
+- **章のコミットの lockfile は、前の章との差分がパッケージの追加だけになります。** どの章でも、依存のバージョンは先端と同じです
+- **npm の依存だけを上げた Renovate のコミットは消えます。** 変更が章のコミットに入るので、差分が残らないためです。いつ何を上げたかは、merge 済みの PR で追えます
+- **それ以外の Renovate のコミットは残ります。** GitHub Actions の digest の更新や、`^` を外す pin の変更です。pin のコミットは、メッセージにある番号ではなく先端の番号で固定する内容に変わります
+- merge コミットは、1つの通常のコミットになります（履歴は直線になります）
+
+先端のツリーが元の `main` と一致しなければ、`refresh` ブランチを作らずに終了します。push したあとは、各章ブランチが壊れていないかを CI で確認してください（ケース2 の手順6と同じです）。
+
+> [!NOTE]
+> 履歴を書き換える操作なので、Claude Code の auto mode では止められます。手順3は自分で実行してください。
+
 ## sync-chapters.sh
 
 ```bash
@@ -213,7 +251,7 @@ git rebase --continue
 
 ## 確認済みの事項
 
-以下は実機で動かして確認済みです（2026年8月時点）。バージョンが上がったら再確認してください。
+以下は実機で動かして確認済みです（2026年8月時点）。バージョンは記事と同じ桁（1.0 以上はメジャー、0.x はマイナー）まで書いています。その桁が上がったら再確認してください。
 
 | 章 | 確認したこと |
 |---|---|
@@ -221,16 +259,16 @@ git rebase --continue
 | 全体 | この記事の範囲は Cloudflare の無料プランに収まる。Workers 100,000 リクエスト/日、D1 は読み取り 500 万行/日・書き込み 100,000 行/日・容量 5 GB、静的ファイルの配信は無制限（[Workers の料金](https://developers.cloudflare.com/workers/platform/pricing/) / [D1 の料金](https://developers.cloudflare.com/d1/platform/pricing/) で確認） |
 | 2 | Node.js の LTS は 24。`create-vite` 9系の生成物（Vite 8 / React 19 / TS 6、Lint は oxlint） |
 | [2.9](../docs/02_frontend.md#29-react-router-でページを分ける) | React Router v8。モードの呼称（Framework / Data / Declarative）は変わっていない |
-| [2.10](../docs/02_frontend.md#210-oxlint--oxfmt-のセットアップ) | oxlint 1.79 / oxfmt 0.73。`create-vite` が入れるのは oxlint だけで、oxfmt も `oxlint-tsgolint` も入らない。oxlint は既定で `correctness` カテゴリのみ、react プラグインは off。型情報を使うルールには `oxlint-tsgolint` + `--type-aware` が要る。`overrides` の `plugins` は既定のプラグインを置き換えず足し算になる |
+| [2.10](../docs/02_frontend.md#210-oxlint--oxfmt-のセットアップ) | oxlint 1 / oxfmt 0.73。`create-vite` が入れるのは oxlint だけで、oxfmt も `oxlint-tsgolint` も入らない。oxlint は既定で `correctness` カテゴリのみ、react プラグインは off。型情報を使うルールには `oxlint-tsgolint` + `--type-aware` が要る。`overrides` の `plugins` は既定のプラグインを置き換えず足し算になる |
 | [3.2](../docs/03_backend.md#32-npm-create-honolatest) | `create-hono` 0.19 系の生成物。`"private": true` は入っていない |
 | [3.5](../docs/03_backend.md#35-環境変数とシークレット) | `wrangler types` が `vars` をリテラル型、`.dev.vars` のキーを `string` として生成する |
 | [3.6](../docs/03_backend.md#36-drizzle--d1-で-posts-テーブルを作る) | Drizzle 0.45 / drizzle-kit 0.31。ローカル D1 は `.wrangler/state/v3/d1/miniflare-D1DatabaseObject/<hash>.sqlite` |
 | [3.7](../docs/03_backend.md#37-入力バリデーション) | `@hono/zod-validator` 0.9 + zod 4 |
-| [3.10](../docs/03_backend.md#310-better-auth-を導入しposts-をユーザーに紐づける) | Better Auth 1.7。D1 の組み込みサポートはあるが、この記事は Drizzle アダプタを使う。`drizzleAdapter` には `schema` を渡す必要がある。トークンは `set-auth-token` ヘッダー |
+| [3.10](../docs/03_backend.md#310-better-auth-を導入しposts-をユーザーに紐づける) | Better Auth 1。D1 の組み込みサポートはあるが、この記事は Drizzle アダプタを使う。`drizzleAdapter` には `schema` を渡す必要がある。トークンは `set-auth-token` ヘッダー |
 | 4 | Vitest 4 + Testing Library 16 / `@cloudflare/vitest-pool-workers` 0.23（`cloudflareTest` プラグイン形式） |
 | [6.4](../docs/06_api-integration.md#64-hono-rpc-で型安全に呼ぶ) | RPC の型共有は `tsconfig` の `paths` だけで足りる（project references 不要） |
 | [6.2](../docs/06_api-integration.md#62-cors) | CORS に加えて Better Auth の `trustedOrigins` が必要 |
-| 8 | Playwright 1.62。`webServer` は `globalSetup` より先に起動する |
+| 8 | Playwright 1。`webServer` は `globalSetup` より先に起動する |
 | [3.2](../docs/03_backend.md#32-npm-create-honolatest) | 生成される `name` はディレクトリ名そのままの `api`。Worker 名はデプロイ先の URL になるので `memo-app-api` に直す |
 | [3.6](../docs/03_backend.md#36-drizzle--d1-で-posts-テーブルを作る) | `wrangler d1 create` が出力する `binding` はデータベース名から作られる（`memo_app_db`）。`DB` に直さないと、`db:migrate:local` が `No migrations present at .../apps/api/migrations` で失敗する（`migrations_dir` の指定ごと無視されるため） |
 | 5 | Worker の名前は Cloudflare のダッシュボードで変更できる（`wrangler` にリネームのコマンドは無い）。リネームすると `workers.dev` の URL も割り当て直され、シークレットとバインディングはそのまま残る |
