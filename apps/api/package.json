@@ -24,10 +24,10 @@
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "0.23.0",
     "@libsql/client": "0.18.0",
-    "@types/node": "26.6.6",
+    "@types/node": "26.6.7",
     "drizzle-kit": "0.31.11",
     "typescript": "6.0.3",
     "vitest": "4.1.12",
-    "wrangler": "4.164.0"
+    "wrangler": "4.168.0"
   }
 }
